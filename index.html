@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f2237" />
+  <title>CattleCare Farm Control - Full Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <img src="assets/logo-vetinstant.png" alt="VetInstant logo" />
+        </div>
+        <div>
+          <h1>VetInstant</h1>
+          <p id="brand-subtitle">Cattle Health Intelligence</p>
+        </div>
+      </div>
+
+      <nav id="sidebar-nav">
+        <a class="active" href="#dashboard" data-screen="dashboard"><span class="nav-icon"><img src="assets/icons/dashboard.svg" alt="" /></span>Dashboard</a>
+        <a href="#herd" data-screen="herd"><span class="nav-icon"><img src="assets/icons/animals.svg" alt="" /></span>Animals</a>
+        <a href="#checkup" data-screen="checkup"><span class="nav-icon"><img src="assets/icons/health.svg" alt="" /></span>Health Records</a>
+        <a href="#analysis" data-screen="analysis"><span class="nav-icon"><img src="assets/icons/alerts.svg" alt="" /></span>Alerts</a>
+        <a href="#heat" data-screen="heat"><span class="nav-icon"><img src="assets/icons/sync.svg" alt="" /></span>Sync Data</a>
+        <a href="#reports" data-screen="reports"><span class="nav-icon"><img src="assets/icons/settings.svg" alt="" /></span>Settings</a>
+      </nav>
+
+      <div class="device-card">
+        <h3 id="device-vitals-title">One Device. 5 Vitals.</h3>
+        <ul>
+          <li>Heart Rate</li>
+          <li>SpO₂</li>
+          <li>Temperature</li>
+          <li>Respiration</li>
+          <li id="device-signal-label">Heat Activity Signal</li>
+        </ul>
+      </div>
+
+      <div class="sidebar-cattle">
+        <img id="sidebar-species-image" src="assets/sidebar-cattle.png" alt="Cattle photo in left sidebar" />
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="top-bar">
+        <h2 id="page-title">DASHBOARD - OVERVIEW</h2>
+        <div class="utility-icons">
+          <select id="species-select" class="species-select" aria-label="Select species profile">
+            <option value="cattle">Cattle</option>
+            <option value="horse">Horse</option>
+          </select>
+          <button class="primary header-action" id="add-cattle-button" type="button">Add New Cattle</button>
+          <span><img src="assets/icons/bell.svg" alt="" /></span>
+          <span><img src="assets/icons/user.svg" alt="" /></span>
+          <span><img src="assets/icons/menu.svg" alt="" /></span>
+        </div>
+      </header>
+
+      <section class="screen active" id="dashboard">
+        <div class="kpi-strip">
+          <article class="kpi-item total" data-filter="all" title="Open all animals">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-total.svg" alt="" /></span>Total Animals</p>
+            <h4>120</h4>
+          </article>
+          <article class="kpi-item healthy" data-filter="healthy" title="Open healthy animals">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-healthy.svg" alt="" /></span>Healthy</p>
+            <h4 class="good">95</h4>
+          </article>
+          <article class="kpi-item risk" data-filter="at-risk" title="Open at-risk animals">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-risk.svg" alt="" /></span>At Risk</p>
+            <h4 class="warn">27</h4>
+          </article>
+          <article class="kpi-item sick" data-filter="sick" title="Open sick animals">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-sick.svg" alt="" /></span>Sick</p>
+            <h4 class="danger">8</h4>
+          </article>
+          <article class="kpi-item small heat" data-filter="heat" title="Open estrous alerts">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-estrous.svg" alt="" /></span>Estrous Alerts</p>
+            <h4>24</h4>
+            <small>Heat detection</small>
+          </article>
+          <article class="kpi-item small vaccination">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-vaccination.svg" alt="" /></span>Vaccinations (FMD-CP)</p>
+            <h4>98%</h4>
+            <small>Coverage</small>
+          </article>
+        </div>
+
+        <article class="white-panel daily-report-panel is-collapsed" id="daily-report-panel">
+          <button
+            type="button"
+            class="daily-report-toggle"
+            id="daily-report-toggle"
+            aria-expanded="false"
+            aria-controls="daily-report-body"
+          >
+            <span class="daily-chevron" aria-hidden="true"></span>
+            <div class="daily-report-toggle-main">
+              <div class="section-title-stack">
+                <h3 id="daily-report-title">Today's Daily Report</h3>
+                <p id="daily-report-subtitle">Large animal rounds — vitals, treatments, and checkups completed today</p>
+              </div>
+              <div class="daily-report-meta">
+                <span class="chip daily-report-date" id="daily-report-date">—</span>
+                <span class="chip" id="daily-report-sync">Device sync: 06:45</span>
+              </div>
+            </div>
+            <div class="daily-report-mini" id="daily-report-mini">
+              <span><strong id="daily-mini-vitals">0</strong> vitals</span>
+              <span><strong id="daily-mini-treatments">0</strong> treatments</span>
+              <span><strong id="daily-mini-checkups">0</strong> checkups</span>
+              <span><strong id="daily-mini-completed">0</strong> done</span>
+            </div>
+          </button>
+
+          <div class="daily-report-body" id="daily-report-body" hidden>
+            <div class="daily-report-kpis" id="daily-report-kpis">
+              <article class="daily-kpi vitals">
+                <p>Vitals taken today</p>
+                <h4 id="daily-kpi-vitals">0</h4>
+                <small id="daily-kpi-vitals-note">5-vital device sessions</small>
+              </article>
+              <article class="daily-kpi treatments">
+                <p>Treatments done today</p>
+                <h4 id="daily-kpi-treatments">0</h4>
+                <small id="daily-kpi-treatments-note">Medication &amp; protocols</small>
+              </article>
+              <article class="daily-kpi checkups">
+                <p>Checkups today</p>
+                <h4 id="daily-kpi-checkups">0</h4>
+                <small id="daily-kpi-checkups-note">Clinical reviews</small>
+              </article>
+              <article class="daily-kpi completed">
+                <p>Animals completed</p>
+                <h4 id="daily-kpi-completed">0</h4>
+                <small id="daily-kpi-completed-note">Full round finished</small>
+              </article>
+            </div>
+
+            <div class="daily-report-grid">
+              <section class="daily-report-col is-collapsed" data-daily-col="vitals">
+                <button type="button" class="daily-col-toggle" aria-expanded="false" aria-controls="daily-col-vitals">
+                  <span class="daily-chevron" aria-hidden="true"></span>
+                  <h4>Vitals recorded today</h4>
+                  <span class="daily-col-count" id="daily-vitals-count">0</span>
+                </button>
+                <div class="daily-col-body" id="daily-col-vitals" hidden>
+                  <ul class="daily-activity-list" id="daily-vitals-list"></ul>
+                </div>
+              </section>
+              <section class="daily-report-col is-collapsed" data-daily-col="treatments">
+                <button type="button" class="daily-col-toggle" aria-expanded="false" aria-controls="daily-col-treatments">
+                  <span class="daily-chevron" aria-hidden="true"></span>
+                  <h4>Treatments done today</h4>
+                  <span class="daily-col-count" id="daily-treatments-count">0</span>
+                </button>
+                <div class="daily-col-body" id="daily-col-treatments" hidden>
+                  <ul class="daily-activity-list" id="daily-treatments-list"></ul>
+                </div>
+              </section>
+              <section class="daily-report-col is-collapsed" data-daily-col="checkups">
+                <button type="button" class="daily-col-toggle" aria-expanded="false" aria-controls="daily-col-checkups">
+                  <span class="daily-chevron" aria-hidden="true"></span>
+                  <h4>Checkups today</h4>
+                  <span class="daily-col-count" id="daily-checkups-count">0</span>
+                </button>
+                <div class="daily-col-body" id="daily-col-checkups" hidden>
+                  <ul class="daily-activity-list" id="daily-checkups-list"></ul>
+                </div>
+              </section>
+              <section class="daily-report-col is-collapsed" data-daily-col="other">
+                <button type="button" class="daily-col-toggle" aria-expanded="false" aria-controls="daily-col-other">
+                  <span class="daily-chevron" aria-hidden="true"></span>
+                  <h4>Other activity today</h4>
+                  <span class="daily-col-count" id="daily-other-count">0</span>
+                </button>
+                <div class="daily-col-body" id="daily-col-other" hidden>
+                  <ul class="daily-activity-list" id="daily-other-list"></ul>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="white-panel">
+          <div class="panel-head">
+            <div class="section-title-stack">
+              <h3 id="risk-groups-title">Risk Groups</h3>
+              <p id="risk-groups-subtitle">Monitor and manage common health risks in cattle.</p>
+            </div>
+            <p id="risk-groups-queue-note">Click a category to filter operational queue</p>
+          </div>
+          <div class="report-cards" id="action-summary-filters">
+            <div class="report-card infection" data-disease="infection">
+              <h4><span class="report-icon"><img src="assets/icons/risk-infection.svg" alt="" /></span>Infection</h4>
+              <p class="category-list">FMD, LSD, BQ</p>
+              <div class="category-metric"><strong>18</strong><span>Cattle affected</span></div>
+              <small>Systemic infection risks</small>
+            </div>
+            <div class="report-card respiratory" data-disease="respiratory">
+              <h4><span class="report-icon"><img src="assets/icons/risk-respiratory.svg" alt="" /></span>Respiratory</h4>
+              <p class="category-list">Pneumonia, HS</p>
+              <div class="category-metric"><strong>12</strong><span>Cattle affected</span></div>
+              <small>Breathing and lung-related risks</small>
+            </div>
+            <div class="report-card udder" data-disease="udder mastitis">
+              <h4><span class="report-icon"><img src="assets/icons/risk-udder.svg" alt="" /></span>Udder Health</h4>
+              <p class="category-list">Mastitis</p>
+              <div class="category-metric"><strong>9</strong><span>Cattle affected</span></div>
+              <small>Udder infection monitoring</small>
+            </div>
+            <div class="report-card chronic" data-disease="chronic">
+              <h4><span class="report-icon"><img src="assets/icons/risk-chronic.svg" alt="" /></span>Chronic</h4>
+              <p class="category-list">Brucellosis</p>
+              <div class="category-metric"><strong>6</strong><span>Cattle affected</span></div>
+              <small>Long-term persistence risks</small>
+            </div>
+            <div class="report-card heat-cat" data-disease="heat-stress heat">
+              <h4><span class="report-icon"><img src="assets/icons/risk-heat.svg" alt="" /></span>Heat Stress</h4>
+              <p class="category-list">Thermal Stress</p>
+              <div class="category-metric"><strong>11</strong><span>Cattle affected</span></div>
+              <small>Environment and heat load alerts</small>
+            </div>
+          </div>
+        </article>
+
+        <div class="dashboard-ops-grid">
+          <article class="white-panel">
+            <div class="panel-head">
+              <h3>Animals Requiring Action</h3>
+              <p id="queue-filter-label">Showing: All animals requiring action</p>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="species-id-head">Cow ID</th>
+                    <th>Breed</th>
+                    <th>Alert</th>
+                    <th>Status</th>
+                    <th>Severity</th>
+                    <th>Risk Score</th>
+                    <th>Last Abnormal</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-action-body">
+                  <tr class="clickable-cattle" data-cow-id="033" data-disease="mastitis udder" data-priority="udder">
+                    <td>033</td>
+                    <td>HF</td>
+                    <td><span class="pill red">High Alert</span></td>
+                    <td><span class="status-pill warning">Warning</span></td>
+                    <td><span class="sev-pill sev-high">46%</span></td>
+                    <td><span class="risk-pill high">82 High</span></td>
+                    <td>32 May 2025</td>
+                  </tr>
+                  <tr class="clickable-cattle" data-cow-id="045" data-disease="fmd infection" data-priority="infection">
+                    <td>045</td>
+                    <td>HF</td>
+                    <td><span class="pill red">High Temperature</span></td>
+                    <td><span class="status-pill moderate">Observe</span></td>
+                    <td><span class="sev-pill sev-critical">80%</span></td>
+                    <td><span class="risk-pill critical">91 Critical</span></td>
+                    <td>38 May 2025</td>
+                  </tr>
+                  <tr class="clickable-cattle" data-cow-id="023" data-disease="pneumonia respiratory" data-priority="respiratory">
+                    <td>023</td>
+                    <td>HF</td>
+                    <td><span class="pill purple">Pneumonia Risk</span></td>
+                    <td><span class="status-pill warning">Warning</span></td>
+                    <td><span class="sev-pill sev-critical">93%</span></td>
+                    <td><span class="risk-pill critical">93 Critical</span></td>
+                    <td>32 May 2025</td>
+                  </tr>
+                  <tr class="clickable-cattle" data-cow-id="036" data-disease="hs heat-stress respiratory" data-priority="heat">
+                    <td>036</td>
+                    <td>HF</td>
+                    <td><span class="pill blue">Heat Stress</span></td>
+                    <td><span class="status-pill monitor">Monitor</span></td>
+                    <td><span class="sev-pill sev-medium">40%</span></td>
+                    <td><span class="risk-pill low">34 Low</span></td>
+                    <td>32 May 2065</td>
+                  </tr>
+                  <tr class="clickable-cattle" data-cow-id="052" data-disease="brucellosis chronic infection" data-priority="chronic">
+                    <td>052</td>
+                    <td>HF</td>
+                    <td><span class="pill purple">Brucellosis</span></td>
+                    <td><span class="status-pill moderate">Observe</span></td>
+                    <td><span class="sev-pill sev-high">58%</span></td>
+                    <td><span class="risk-pill high">61 Medium</span></td>
+                    <td>30 May 2025</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="white-panel disease-graph-panel">
+            <div class="panel-head">
+              <h3>Disease Distribution</h3>
+              <p>Herd-level pattern by disease type</p>
+            </div>
+            <div class="disease-graph-layout">
+              <div class="donut-wrap">
+                <div class="disease-donut">
+                  <div class="donut-center">
+                    <strong>Disease</strong>
+                    <span>Breakdown</span>
+                    <small>(95 cases)</small>
+                  </div>
+                </div>
+                <ul class="donut-labels" id="disease-mix-filters">
+                  <li data-disease="mastitis"><span class="dot mast"></span>Mastitis: <strong>30%</strong> <small>(28)</small></li>
+                  <li data-disease="fmd"><span class="dot fmd"></span>FMD: <strong>18%</strong> <small>(17)</small></li>
+                  <li data-disease="brucellosis"><span class="dot bruc"></span>Brucellosis: <strong>15%</strong> <small>(14)</small></li>
+                  <li data-disease="hs"><span class="dot hs"></span>HS: <strong>12%</strong> <small>(11)</small></li>
+                  <li data-disease="tick"><span class="dot tick"></span>Tick Fever: <strong>10%</strong> <small>(10)</small></li>
+                  <li data-disease="bq"><span class="dot bq"></span>BQ: <strong>8%</strong> <small>(8)</small></li>
+                  <li data-disease="lsd"><span class="dot lsd"></span>LSD: <strong>5%</strong> <small>(5)</small></li>
+                  <li data-disease="anthrax"><span class="dot anth"></span>Anthrax: <strong>2%</strong> <small>(2)</small></li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+
+      </section>
+
+      <section class="screen" id="herd">
+        <div class="section-head">
+          <div class="section-title-stack">
+            <h3 id="management-title">Herd Management</h3>
+            <p class="section-subtitle" id="herd-filter-chip">All Animals</p>
+          </div>
+        </div>
+        <div class="panel table-wrap">
+          <div class="herd-toolbar">
+            <div class="toolbar-search">
+              <label for="herd-search">Search</label>
+              <input id="herd-search" type="text" placeholder="Search by Cow ID or Breed" />
+            </div>
+            <div class="toolbar-selects">
+              <div class="toolbar-field">
+                <label for="herd-status-filter">Filter</label>
+                <select id="herd-status-filter">
+                  <option value="all">All Status</option>
+                  <option value="healthy">Healthy</option>
+                  <option value="at-risk">At Risk</option>
+                  <option value="sick">Sick</option>
+                  <option value="heat">Heat</option>
+                </select>
+              </div>
+              <div class="toolbar-field">
+                <label for="herd-age-filter">Age</label>
+                <select id="herd-age-filter">
+                  <option value="all">All Age</option>
+                  <option value="3">3 Years</option>
+                  <option value="4">4 Years</option>
+                  <option value="5">5 Years</option>
+                  <option value="6">6 Years</option>
+                </select>
+              </div>
+              <div class="toolbar-field">
+                <label for="herd-breed-filter">Breed</label>
+                <select id="herd-breed-filter">
+                  <option value="all">All Breed</option>
+                  <option value="HF">HF</option>
+                  <option value="Jersey">Jersey</option>
+                </select>
+              </div>
+              <div class="toolbar-field">
+                <label for="herd-sort">Sort</label>
+                <select id="herd-sort">
+                  <option value="id-asc">Cow ID (A-Z)</option>
+                  <option value="id-desc">Cow ID (Z-A)</option>
+                  <option value="age-asc">Age (Low-High)</option>
+                  <option value="age-desc">Age (High-Low)</option>
+                  <option value="check-asc">Last Check (Latest)</option>
+                  <option value="check-desc">Last Check (Oldest)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <table id="herd-table">
+            <thead>
+              <tr>
+                <th class="species-id-head">Cow ID</th>
+                <th>Breed</th>
+                <th>Age</th>
+                <th>Last Check</th>
+                <th>Health State</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="clickable-cattle" data-cow-id="CC-101" data-health="heat">
+                <td>CC-101</td>
+                <td>HF</td>
+                <td>4 yrs</td>
+                <td>10 min ago</td>
+                <td><span class="badge heat">Heat Likely</span></td>
+                <td><button class="mini">Open</button></td>
+              </tr>
+              <tr class="clickable-cattle" data-cow-id="CC-078" data-health="at-risk sick">
+                <td>CC-078</td>
+                <td>HF</td>
+                <td>5 yrs</td>
+                <td>15 min ago</td>
+                <td><span class="badge high">High Risk</span></td>
+                <td><button class="mini">Open</button></td>
+              </tr>
+              <tr class="clickable-cattle" data-cow-id="CC-045" data-health="healthy">
+                <td>CC-045</td>
+                <td>Jersey</td>
+                <td>3 yrs</td>
+                <td>35 min ago</td>
+                <td><span class="badge">Stable</span></td>
+                <td><button class="mini">Open</button></td>
+              </tr>
+              <tr class="clickable-cattle" data-cow-id="CC-023" data-health="at-risk">
+                <td>CC-023</td>
+                <td>HF</td>
+                <td>4 yrs</td>
+                <td>42 min ago</td>
+                <td><span class="badge medium">Moderate Risk</span></td>
+                <td><button class="mini">Open</button></td>
+              </tr>
+              <tr class="clickable-cattle" data-cow-id="CC-112" data-health="sick">
+                <td>CC-112</td>
+                <td>HF</td>
+                <td>6 yrs</td>
+                <td>1 hr ago</td>
+                <td><span class="badge high">Sick</span></td>
+                <td><button class="mini">Open</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen" id="checkup">
+        <div class="section-head">
+          <div class="section-title-stack">
+            <h3 id="records-title">Herd Health Records</h3>
+            <p class="section-subtitle">Awaiting final confirmation for synced herd records structure</p>
+          </div>
+          <span class="chip">Pending Confirmation</span>
+        </div>
+        <div class="panel records-placeholder">
+          <h4>Section Reserved</h4>
+          <p>This page is intentionally kept empty for now. Once the AWS-synced record flow is confirmed, this section can be rebuilt with the correct herd-level structure.</p>
+          <ul class="records-placeholder-list">
+            <li>Synced device records</li>
+            <li>Disease history across herd</li>
+            <li>Treatment and vaccination tracking</li>
+            <li>Farm review and follow-up actions</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="screen" id="analysis">
+        <div class="section-head">
+          <div class="section-title-stack">
+            <h3>Alerts</h3>
+            <p class="section-subtitle">Simple alert view by action priority across the herd</p>
+          </div>
+          <span class="chip">Action Priority</span>
+        </div>
+        <div class="alerts-kpi-strip">
+          <article class="alert-kpi critical">
+            <p>Critical</p>
+            <h4>8</h4>
+            <small>Immediate intervention required</small>
+          </article>
+          <article class="alert-kpi review">
+            <p>Needs Review</p>
+            <h4>14</h4>
+            <small>Review and verify today</small>
+          </article>
+          <article class="alert-kpi monitor">
+            <p>Monitor</p>
+            <h4>11</h4>
+            <small>Observe trend and recheck</small>
+          </article>
+        </div>
+        <article class="panel alerts-main-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Alert Queue</h3>
+              <p>Focus on what needs action first</p>
+            </div>
+            <span class="chip">All Open Alerts</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="species-id-head">Cow ID</th>
+                  <th>Alert Type</th>
+                  <th>Priority</th>
+                  <th>Time</th>
+                  <th>Suggested Action</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-queue-body">
+                <tr class="clickable-cattle" data-cow-id="033">
+                  <td>033</td>
+                  <td>Fever</td>
+                  <td><span class="sev-pill sev-critical">Critical</span></td>
+                  <td>10 min ago</td>
+                  <td>Immediate vet review</td>
+                  <td><span class="badge high">Open</span></td>
+                </tr>
+                <tr class="clickable-cattle" data-cow-id="023">
+                  <td>023</td>
+                  <td>Pneumonia Risk</td>
+                  <td><span class="sev-pill sev-high">Needs Review</span></td>
+                  <td>22 min ago</td>
+                  <td>Check respiration and isolate</td>
+                  <td><span class="badge medium">Pending</span></td>
+                </tr>
+                <tr class="clickable-cattle" data-cow-id="036">
+                  <td>036</td>
+                  <td>Heat Stress</td>
+                  <td><span class="sev-pill sev-medium">Monitor</span></td>
+                  <td>40 min ago</td>
+                  <td>Move to shaded zone and recheck</td>
+                  <td><span class="badge">Watching</span></td>
+                </tr>
+                <tr class="clickable-cattle" data-cow-id="052">
+                  <td>052</td>
+                  <td>Chronic Infection Watch</td>
+                  <td><span class="sev-pill sev-high">Needs Review</span></td>
+                  <td>1 hr ago</td>
+                  <td>Confirm lab follow-up</td>
+                  <td><span class="badge medium">Pending</span></td>
+                </tr>
+                <tr class="clickable-cattle" data-cow-id="045">
+                  <td>045</td>
+                  <td>High Temperature</td>
+                  <td><span class="sev-pill sev-critical">Critical</span></td>
+                  <td>1 hr ago</td>
+                  <td>Repeat vitals and notify supervisor</td>
+                  <td><span class="badge high">Open</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <div class="alerts-support-grid">
+          <article class="panel">
+            <h4>What To Do First</h4>
+            <ol class="flow">
+              <li>Resolve all critical alerts first</li>
+              <li>Review respiratory and fever cases next</li>
+              <li>Monitor lower-priority trend alerts</li>
+            </ol>
+          </article>
+          <article class="panel">
+            <h4>Alert Notes</h4>
+            <ul class="records-placeholder-list">
+              <li>Critical means immediate farm action required</li>
+              <li>Needs Review means same-day validation</li>
+              <li>Monitor means observe and recheck trend</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="screen" id="heat">
+        <div class="section-head">
+          <div class="section-title-stack">
+            <h3>Sync Data</h3>
+            <p class="section-subtitle">Awaiting final confirmation for cloud sync workflow</p>
+          </div>
+          <span class="chip">Pending Confirmation</span>
+        </div>
+        <div class="panel records-placeholder">
+          <h4>Section Reserved</h4>
+          <p>This page is intentionally kept empty for now. Once the sync architecture is confirmed, this section can be rebuilt for AWS/device sync monitoring and status review.</p>
+          <ul class="records-placeholder-list">
+            <li>Cloud sync status</li>
+            <li>Last successful device upload</li>
+            <li>Pending sync exceptions</li>
+            <li>AWS ingestion and processing visibility</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="screen" id="reports">
+        <div class="section-head">
+          <div class="section-title-stack">
+            <h3>Settings</h3>
+            <p class="section-subtitle">Awaiting final confirmation for platform configuration</p>
+          </div>
+          <span class="chip">Pending Confirmation</span>
+        </div>
+        <div class="panel records-placeholder">
+          <h4>Section Reserved</h4>
+          <p>This page is intentionally kept empty for now. Once the final product settings are confirmed, this section can be rebuilt for user preferences, farm configuration, and integration settings.</p>
+          <ul class="records-placeholder-list">
+            <li>Farm profile configuration</li>
+            <li>User roles and access control</li>
+            <li>Notification and alert preferences</li>
+            <li>Integration and cloud settings</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="modal-overlay animal-detail-overlay" id="cattle-modal" aria-hidden="true">
+    <div class="modal-card animal-detail-card">
+      <header class="animal-detail-toolbar">
+        <button type="button" class="animal-detail-back" id="cattle-modal-close" aria-label="Back to dashboard">← Back</button>
+        <p class="animal-detail-toolbar-meta" id="modal-last-check">Last vitals: today 08:12</p>
+        <button type="button" class="modal-close animal-detail-close-x" id="cattle-modal-close-x" aria-label="Close">×</button>
+      </header>
+
+      <div class="animal-detail-head">
+        <img id="modal-cow-image" src="assets/sidebar-cattle-online.jpg" alt="Selected animal" />
+        <div class="animal-detail-identity">
+          <p id="modal-cow-id">Cow ID: 101</p>
+          <div class="animal-detail-title-row">
+            <h3 id="modal-cow-name">Gauri</h3>
+            <span class="animal-status-pill" id="modal-health-status">Stable</span>
+          </div>
+          <div class="meta-row">
+            <span id="modal-cow-breed">HF</span>
+            <span id="modal-cow-age">Age - 4 Years</span>
+            <span id="modal-health-score">Health score: 84/100</span>
+          </div>
+          <p class="animal-detail-alert" id="modal-active-alert">No active critical alert</p>
+        </div>
+      </div>
+
+      <section class="animal-vitals-strip" aria-label="Current vitals">
+        <article class="animal-vital-tile" data-metric="temp">
+          <p>Temperature</p>
+          <strong id="modal-vital-temp">—</strong>
+          <small id="modal-vital-temp-note">Target 38.0–39.5°C</small>
+        </article>
+        <article class="animal-vital-tile" data-metric="hr">
+          <p>Heart Rate</p>
+          <strong id="modal-vital-hr">—</strong>
+          <small>bpm</small>
+        </article>
+        <article class="animal-vital-tile" data-metric="spo2">
+          <p>SpO₂</p>
+          <strong id="modal-vital-spo2">—</strong>
+          <small>%</small>
+        </article>
+        <article class="animal-vital-tile" data-metric="resp">
+          <p>Respiration</p>
+          <strong id="modal-vital-resp">—</strong>
+          <small>rpm</small>
+        </article>
+        <article class="animal-vital-tile" data-metric="activity">
+          <p id="modal-activity-label">Heat Activity</p>
+          <strong id="modal-vital-activity">—</strong>
+          <small>index</small>
+        </article>
+      </section>
+
+      <div class="animal-charts-grid">
+        <article class="animal-chart-card">
+          <div class="animal-chart-head">
+            <h4>Temperature trend</h4>
+            <span>Last 7 days · °C</span>
+          </div>
+          <div class="animal-chart-wrap">
+            <canvas id="animal-chart-temp" height="200"></canvas>
+            <div class="animal-chart-tooltip" id="tip-temp"></div>
+          </div>
+        </article>
+        <article class="animal-chart-card">
+          <div class="animal-chart-head">
+            <h4>Heart rate trend</h4>
+            <span>Last 7 days · bpm</span>
+          </div>
+          <div class="animal-chart-wrap">
+            <canvas id="animal-chart-hr" height="200"></canvas>
+            <div class="animal-chart-tooltip" id="tip-hr"></div>
+          </div>
+        </article>
+        <article class="animal-chart-card">
+          <div class="animal-chart-head">
+            <h4>SpO₂ trend</h4>
+            <span>Last 7 days · %</span>
+          </div>
+          <div class="animal-chart-wrap">
+            <canvas id="animal-chart-spo2" height="200"></canvas>
+            <div class="animal-chart-tooltip" id="tip-spo2"></div>
+          </div>
+        </article>
+        <article class="animal-chart-card">
+          <div class="animal-chart-head">
+            <h4>Respiration trend</h4>
+            <span>Last 7 days · rpm</span>
+          </div>
+          <div class="animal-chart-wrap">
+            <canvas id="animal-chart-resp" height="200"></canvas>
+            <div class="animal-chart-tooltip" id="tip-resp"></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="modal-tabs" id="modal-tabs">
+        <button class="active" data-tab="summary">Overview</button>
+        <button data-tab="history">History</button>
+        <button data-tab="results">Treatment &amp; Results</button>
+        <button data-tab="reports">Reports</button>
+      </div>
+
+      <div class="tab-content active" data-tab-content="summary">
+        <div class="animal-summary-grid">
+          <div>
+            <h4>Today's activity for this animal</h4>
+            <ul class="modal-list animal-today-list" id="modal-today-list"></ul>
+          </div>
+          <div>
+            <h4>Clinical summary</h4>
+            <ul class="modal-vitals modal-vitals-legacy" id="modal-vitals"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="tab-content" data-tab-content="history">
+        <h4>Health history</h4>
+        <ul class="modal-list" id="modal-history"></ul>
+      </div>
+      <div class="tab-content" data-tab-content="results">
+        <h4>Current result</h4>
+        <div class="result-card" id="modal-result-card">
+          <p class="result-label" id="modal-result-status">Status</p>
+          <h5 id="modal-result-title">—</h5>
+          <small id="modal-result-note">—</small>
+        </div>
+        <div class="protocol-grid">
+          <div class="protocol-item"><p>Assigned worker</p><strong id="modal-assignee">—</strong></div>
+          <div class="protocol-item"><p>Recheck in</p><strong id="modal-recheck">—</strong></div>
+        </div>
+        <h4>Action protocol</h4>
+        <ul class="modal-list" id="modal-protocol"></ul>
+        <h4>Recovery tracking</h4>
+        <ul class="modal-list" id="modal-recovery"></ul>
+        <h4>Follow-up advice</h4>
+        <ul class="modal-list" id="modal-advice"></ul>
+      </div>
+      <div class="tab-content" data-tab-content="reports">
+        <h4>Reports &amp; documents</h4>
+        <ul class="modal-list" id="modal-reports"></ul>
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" id="add-cattle-modal" aria-hidden="true">
+    <div class="modal-card add-cattle-card">
+      <button class="modal-close" id="add-cattle-close" aria-label="Close add cattle form">×</button>
+      <form class="add-cattle-form" id="add-cattle-form">
+        <div class="add-cattle-title">
+          <p>New Animal</p>
+          <h3 id="add-animal-title">Add New Cattle</h3>
+        </div>
+        <div class="add-cattle-grid">
+          <label class="add-cattle-photo-field">
+            <span>Upload Photo</span>
+            <input id="new-cattle-photo" type="file" accept="image/*" />
+          </label>
+          <label>
+            <span id="add-animal-id-label">Cow ID</span>
+            <input id="new-cattle-id" type="text" placeholder="CC-120" required />
+          </label>
+          <label>
+            <span>Name</span>
+            <input id="new-cattle-name" type="text" placeholder="Lakshmi" required />
+          </label>
+          <label>
+            <span>Breed</span>
+            <select id="new-cattle-breed" required>
+              <option value="HF">HF</option>
+              <option value="Jersey">Jersey</option>
+            </select>
+          </label>
+          <label>
+            <span>Age</span>
+            <select id="new-cattle-age" required>
+              <option value="3">3 Years</option>
+              <option value="4">4 Years</option>
+              <option value="5">5 Years</option>
+              <option value="6">6 Years</option>
+            </select>
+          </label>
+          <label>
+            <span>Health State</span>
+            <select id="new-cattle-health" required>
+              <option value="healthy">Healthy</option>
+              <option value="at-risk">At Risk</option>
+              <option value="sick">Sick</option>
+              <option value="heat">Heat</option>
+            </select>
+          </label>
+          <label>
+            <span>Last Check</span>
+            <input id="new-cattle-check" type="text" placeholder="5 min ago" required />
+          </label>
+        </div>
+        <div class="add-cattle-actions">
+          <button class="ghost" id="add-cattle-cancel" type="button">Cancel</button>
+          <button class="primary" id="add-animal-submit" type="submit">Save Cattle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+          console.error("Service worker registration failed:", error);
+        });
+      });
+    }
+
+    const nav = document.getElementById("sidebar-nav");
+    const navLinks = nav.querySelectorAll("a[data-screen]");
+    const screens = document.querySelectorAll(".screen");
+    const pageTitle = document.getElementById("page-title");
+    const kpiCards = document.querySelectorAll(".kpi-item[data-filter]");
+    const herdTableBody = document.querySelector("#herd-table tbody");
+    const herdFilterChip = document.getElementById("herd-filter-chip");
+    const herdSearch = document.getElementById("herd-search");
+    const herdStatusFilter = document.getElementById("herd-status-filter");
+    const herdAgeFilter = document.getElementById("herd-age-filter");
+    const herdBreedFilter = document.getElementById("herd-breed-filter");
+    const herdSort = document.getElementById("herd-sort");
+    const addCattleButton = document.getElementById("add-cattle-button");
+    const addCattleModal = document.getElementById("add-cattle-modal");
+    const addCattleClose = document.getElementById("add-cattle-close");
+    const addCattleCancel = document.getElementById("add-cattle-cancel");
+    const addCattleForm = document.getElementById("add-cattle-form");
+    let queueRows = document.querySelectorAll("#dashboard-action-body tr");
+    const queueFilterLabel = document.getElementById("queue-filter-label");
+    const diseaseMixFilters = document.querySelectorAll("#disease-mix-filters li");
+    const actionSummaryFilters = document.querySelectorAll("#action-summary-filters .report-card");
+    const dashboardActionBody = document.getElementById("dashboard-action-body");
+    const alertsQueueBody = document.getElementById("alerts-queue-body");
+    const speciesSelect = document.getElementById("species-select");
+    const cattleModal = document.getElementById("cattle-modal");
+    const cattleModalClose = document.getElementById("cattle-modal-close");
+    const cattleModalCloseX = document.getElementById("cattle-modal-close-x");
+    const modalTabs = document.querySelectorAll("#modal-tabs button");
+    const modalTabContents = document.querySelectorAll(".tab-content");
+    let activeAnimalDetail = null;
+
+    const TREND_DAYS = ["16 May", "17 May", "18 May", "19 May", "20 May", "21 May", "22 May"];
+
+    const VITAL_NORMS = {
+      cattle: {
+        temp: { min: 38.0, max: 39.5 },
+        hr: { min: 60, max: 90 },
+        spo2: { min: 94, max: 100 },
+        resp: { min: 22, max: 36 },
+        activityLabel: "Heat activity",
+      },
+      horse: {
+        temp: { min: 37.2, max: 38.6 },
+        hr: { min: 36, max: 52 },
+        spo2: { min: 94, max: 100 },
+        resp: { min: 12, max: 20 },
+        activityLabel: "Estrus activity",
+      },
+    };
+
+    const cattleData = {
+      "033": {
+        id: "033",
+        name: "Bella",
+        breed: "HF",
+        age: "5 Years",
+        vitals: ["Heart Rate: 86 bpm", "SpO₂: 95%", "Temperature: 39.9°C", "Respiration: 36 rpm", "Estrous Index: Medium"],
+        history: ["12 May: Heat stress alert", "15 May: Elevated temperature", "18 May: Antibiotic follow-up"],
+        resultTitle: "High Alert",
+        resultNote: "Monitor hydration and isolate if fever increases",
+        advice: ["Move to shaded area", "Check temperature every 4 hours", "Review respiration trend"],
+        reports: ["Disease report generated", "Vet assigned: Dr. Kumar"],
+      },
+      "045": {
+        id: "045",
+        name: "Nandini",
+        breed: "HF",
+        age: "4 Years",
+        vitals: ["Heart Rate: 92 bpm", "SpO₂: 93%", "Temperature: 40.2°C", "Respiration: 38 rpm", "Estrous Index: Low"],
+        history: ["10 May: Normal vitals", "16 May: Fever spike detected"],
+        resultTitle: "Fever Detected",
+        resultNote: "Immediate checkup required",
+        advice: ["Start fever protocol", "Provide oral fluids", "Recheck heart rate in 2 hours"],
+        reports: ["Emergency alert sent", "Treatment note logged"],
+      },
+      "023": {
+        id: "023",
+        name: "Ganga",
+        breed: "HF",
+        age: "4 Years",
+        vitals: ["Heart Rate: 89 bpm", "SpO₂: 92%", "Temperature: 39.7°C", "Respiration: 40 rpm", "Estrous Index: Low"],
+        history: ["13 May: Mild cough observed", "17 May: Respiration increased"],
+        resultTitle: "Pneumonia Risk",
+        resultNote: "High probability from vitals pattern",
+        advice: ["Isolate from herd", "Schedule lung sound recording", "Start vet review"],
+        reports: ["Risk report generated", "Vet escalation level: High"],
+      },
+      "036": {
+        id: "036",
+        name: "Radha",
+        breed: "HF",
+        age: "6 Years",
+        vitals: ["Heart Rate: 78 bpm", "SpO₂: 96%", "Temperature: 39.0°C", "Respiration: 31 rpm", "Estrous Index: Medium"],
+        history: ["11 May: Heat cycle near", "18 May: Heat stress warning"],
+        resultTitle: "Heat Stress",
+        resultNote: "Monitor in hot weather window",
+        advice: ["Increase water availability", "Avoid midday movement", "Track activity index"],
+        reports: ["Stress trend report added", "Farm manager notified"],
+      },
+      "052": {
+        id: "052",
+        name: "Kamdhenu",
+        breed: "HF",
+        age: "5 Years",
+        vitals: ["Heart Rate: 84 bpm", "SpO₂: 94%", "Temperature: 39.3°C", "Respiration: 33 rpm", "Estrous Index: Low"],
+        history: ["11 May: Appetite drop", "16 May: Brucellosis watchlist", "18 May: Confirmatory test advised"],
+        resultTitle: "Chronic Risk",
+        resultNote: "Brucellosis persistence risk under observation",
+        advice: ["Separate from breeding group", "Schedule confirmatory lab test", "Monitor milk output trend"],
+        reports: ["Chronic disease monitoring report", "Biosecurity review required"],
+      },
+      "CC-101": {
+        id: "CC-101",
+        name: "Gauri",
+        breed: "HF",
+        age: "4 Years",
+        vitals: ["Heart Rate: 72 bpm", "SpO₂: 97%", "Temperature: 38.6°C", "Respiration: 28 rpm", "Estrous Index: 75/100"],
+        history: ["14 May: Healthy", "16 May: Estrous trend rising"],
+        resultTitle: "Estrous Detected",
+        resultNote: "Likely heat window in next 12-18 hours",
+        advice: ["Plan breeding decision", "Confirm via next activity check", "Track temperature drift"],
+        reports: ["Breeding candidate report generated", "Farmer alert sent"],
+      },
+      "CC-078": {
+        id: "CC-078",
+        name: "Lakshmi",
+        breed: "HF",
+        age: "5 Years",
+        vitals: ["Heart Rate: 88 bpm", "SpO₂: 93%", "Temperature: 40.2°C", "Respiration: 40 rpm", "Estrous Index: Low"],
+        history: ["15 May: Fever warning", "18 May: Respiratory risk escalated"],
+        resultTitle: "Sick - High Risk",
+        resultNote: "Urgent intervention needed",
+        advice: ["Isolate immediately", "Start treatment protocol", "Vet visit required today"],
+        reports: ["Critical case report", "Treatment action opened"],
+      },
+      "CC-045": {
+        id: "CC-045",
+        name: "Shanti",
+        breed: "Jersey",
+        age: "3 Years",
+        vitals: ["Heart Rate: 67 bpm", "SpO₂: 98%", "Temperature: 38.4°C", "Respiration: 22 rpm", "Estrous Index: Low"],
+        history: ["12 May: Stable", "17 May: Stable"],
+        resultTitle: "Healthy",
+        resultNote: "No major abnormalities",
+        advice: ["Continue routine checks", "Maintain feed schedule"],
+        reports: ["Routine report generated"],
+      },
+      "CC-023": {
+        id: "CC-023",
+        name: "Nila",
+        breed: "HF",
+        age: "4 Years",
+        vitals: ["Heart Rate: 81 bpm", "SpO₂: 95%", "Temperature: 39.1°C", "Respiration: 30 rpm", "Estrous Index: Medium"],
+        history: ["13 May: Normal", "18 May: Moderate risk flagged"],
+        resultTitle: "At Risk",
+        resultNote: "Follow-up required in 6 hours",
+        advice: ["Repeat full check", "Watch temperature trend"],
+        reports: ["Risk follow-up task created"],
+      },
+      "CC-112": {
+        id: "CC-112",
+        name: "Rani",
+        breed: "HF",
+        age: "6 Years",
+        vitals: ["Heart Rate: 90 bpm", "SpO₂: 91%", "Temperature: 40.0°C", "Respiration: 39 rpm", "Estrous Index: Low"],
+        history: ["16 May: Low SpO₂", "18 May: Fever pattern"],
+        resultTitle: "Sick",
+        resultNote: "Close monitoring and treatment needed",
+        advice: ["Start care protocol", "Monitor respiratory rate every 2 hours"],
+        reports: ["Urgent report shared to vet"],
+      },
+    };
+
+    const speciesConfig = {
+      cattle: {
+        brandSubtitle: "Cattle Health Intelligence",
+        deviceTitle: "One Device. 5 Vitals.",
+        activitySignalLabel: "Heat Activity Signal",
+        addButtonLabel: "Add New Cattle",
+        addModalTitle: "Add New Cattle",
+        addSaveLabel: "Save Cattle",
+        idLabel: "Cow ID",
+        managementTitle: "Herd Management",
+        recordsTitle: "Herd Health Records",
+        searchPlaceholder: "Search by Cow ID or Breed",
+        modalImageAlt: "Selected cattle",
+        modalImageSrc: "assets/sidebar-cattle-online.jpg",
+        sidebarImage: "assets/sidebar-cattle.png",
+        sidebarImageAlt: "Cattle photo in left sidebar",
+        heatBadgeLabel: "Heat Likely",
+        queueDefaultLabel: "All animals requiring action",
+        riskGroupsTitle: "Risk Groups",
+        riskGroupsSubtitle: "Monitor and manage common health risks in cattle.",
+        riskGroupsQueueNote: "Click a category to filter operational queue",
+        riskGroupsCards: [
+          {
+            title: "Infection",
+            diseases: "FMD, LSD, BQ",
+            affected: "18",
+            affectedLabel: "Cattle affected",
+            note: "Systemic infection risks",
+            diseaseKey: "infection",
+            icon: "assets/icons/risk-infection.svg",
+          },
+          {
+            title: "Respiratory",
+            diseases: "Pneumonia, HS",
+            affected: "12",
+            affectedLabel: "Cattle affected",
+            note: "Breathing and lung-related risks",
+            diseaseKey: "respiratory",
+            icon: "assets/icons/risk-respiratory.svg",
+          },
+          {
+            title: "Udder Health",
+            diseases: "Mastitis",
+            affected: "9",
+            affectedLabel: "Cattle affected",
+            note: "Udder infection monitoring",
+            diseaseKey: "udder mastitis",
+            icon: "assets/icons/risk-udder.svg",
+          },
+          {
+            title: "Chronic",
+            diseases: "Brucellosis",
+            affected: "6",
+            affectedLabel: "Cattle affected",
+            note: "Long-term persistence risks",
+            diseaseKey: "chronic",
+            icon: "assets/icons/risk-chronic.svg",
+          },
+          {
+            title: "Heat Stress",
+            diseases: "Thermal Stress",
+            affected: "11",
+            affectedLabel: "Cattle affected",
+            note: "Environment and heat load alerts",
+            diseaseKey: "heat-stress heat",
+            icon: "assets/icons/risk-heat.svg",
+          },
+        ],
+        dashboardActionRows: [
+          { id: "033", breed: "HF", alert: "High Alert", alertClass: "red", status: "Warning", statusClass: "warning", severity: "46%", severityClass: "sev-high", risk: "82 High", riskClass: "high", lastAbnormal: "32 May 2025", disease: "mastitis udder", priority: "udder" },
+          { id: "045", breed: "HF", alert: "High Temperature", alertClass: "red", status: "Observe", statusClass: "moderate", severity: "80%", severityClass: "sev-critical", risk: "91 Critical", riskClass: "critical", lastAbnormal: "38 May 2025", disease: "fmd infection", priority: "infection" },
+          { id: "023", breed: "HF", alert: "Pneumonia Risk", alertClass: "purple", status: "Warning", statusClass: "warning", severity: "93%", severityClass: "sev-critical", risk: "93 Critical", riskClass: "critical", lastAbnormal: "32 May 2025", disease: "pneumonia respiratory", priority: "respiratory" },
+          { id: "036", breed: "HF", alert: "Heat Stress", alertClass: "blue", status: "Monitor", statusClass: "monitor", severity: "40%", severityClass: "sev-medium", risk: "34 Low", riskClass: "low", lastAbnormal: "32 May 2065", disease: "hs heat-stress respiratory", priority: "heat" },
+          { id: "052", breed: "HF", alert: "Brucellosis", alertClass: "purple", status: "Observe", statusClass: "moderate", severity: "58%", severityClass: "sev-high", risk: "61 Medium", riskClass: "high", lastAbnormal: "30 May 2025", disease: "brucellosis chronic infection", priority: "chronic" },
+        ],
+        diseaseDistribution: {
+          totalCases: 95,
+          rows: [
+            { key: "mastitis", dot: "mast", label: "Mastitis", percent: 30, count: 28 },
+            { key: "fmd", dot: "fmd", label: "FMD", percent: 18, count: 17 },
+            { key: "brucellosis", dot: "bruc", label: "Brucellosis", percent: 15, count: 14 },
+            { key: "hs", dot: "hs", label: "HS", percent: 12, count: 11 },
+            { key: "tick", dot: "tick", label: "Tick Fever", percent: 10, count: 10 },
+            { key: "bq", dot: "bq", label: "BQ", percent: 8, count: 8 },
+            { key: "lsd", dot: "lsd", label: "LSD", percent: 5, count: 5 },
+            { key: "anthrax", dot: "anth", label: "Anthrax", percent: 2, count: 2 },
+          ],
+        },
+        alertQueueRows: [
+          { id: "033", type: "Fever", priority: "Critical", priorityClass: "sev-critical", time: "10 min ago", action: "Immediate vet review", status: "Open", statusClass: "high" },
+          { id: "023", type: "Pneumonia Risk", priority: "Needs Review", priorityClass: "sev-high", time: "22 min ago", action: "Check respiration and isolate", status: "Pending", statusClass: "medium" },
+          { id: "036", type: "Heat Stress", priority: "Monitor", priorityClass: "sev-medium", time: "40 min ago", action: "Move to shaded zone and recheck", status: "Watching", statusClass: "" },
+          { id: "052", type: "Chronic Infection Watch", priority: "Needs Review", priorityClass: "sev-high", time: "1 hr ago", action: "Confirm lab follow-up", status: "Pending", statusClass: "medium" },
+          { id: "045", type: "High Temperature", priority: "Critical", priorityClass: "sev-critical", time: "1 hr ago", action: "Repeat vitals and notify supervisor", status: "Open", statusClass: "high" },
+        ],
+        filterTitles: {
+          all: "All Animals",
+          healthy: "Healthy Animals",
+          "at-risk": "At Risk Animals",
+          sick: "Sick Animals",
+          heat: "Estrous Detection Alerts",
+        },
+        dailyReport: {
+          title: "Today's Daily Report",
+          subtitle: "Cattle herd — vitals, treatments, and checkups completed today",
+          dateLabel: "Thursday, 22 May 2026",
+          syncLabel: "Last device sync: 06:45",
+          summaryNotes: {
+            vitals: "5-vital device sessions",
+            treatments: "Medication & protocols",
+            checkups: "Clinical reviews",
+            completed: "Full round finished",
+          },
+          summary: { vitals: 24, treatments: 7, checkups: 18, completed: 21 },
+          vitals: [
+            { id: "033", label: "Cow 033 · HF", time: "08:12", detail: "HR 86 · Temp 39.2°C · SpO₂ 96% · Resp 32 · Heat: Medium", staff: "Ravi K.", tag: "Complete", tagClass: "done" },
+            { id: "045", label: "Cow 045 · HF", time: "08:28", detail: "HR 92 · Temp 40.1°C · SpO₂ 93% · Resp 38 · Heat: Low", staff: "Ravi K.", tag: "Flagged", tagClass: "flagged" },
+            { id: "023", label: "Cow 023 · HF", time: "09:05", detail: "HR 89 · Temp 39.7°C · SpO₂ 92% · Resp 40 · Heat: Low", staff: "Meena S.", tag: "Complete", tagClass: "done" },
+            { id: "052", label: "Cow 052 · HF", time: "09:41", detail: "HR 78 · Temp 39.0°C · SpO₂ 96% · Resp 31 · Heat: Medium", staff: "Meena S.", tag: "Complete", tagClass: "done" },
+            { id: "036", label: "Cow 036 · HF", time: "10:18", detail: "HR 84 · Temp 39.3°C · SpO₂ 94% · Resp 33 · Heat: Low", staff: "Arun P.", tag: "Complete", tagClass: "done" },
+            { id: "067", label: "Cow 067 · Jersey", time: "10:55", detail: "HR 72 · Temp 38.6°C · SpO₂ 97% · Resp 28 · Heat: Low", staff: "Arun P.", tag: "Complete", tagClass: "done" },
+          ],
+          treatments: [
+            { id: "045", label: "Cow 045 · HF", time: "08:45", detail: "Antipyretic protocol started — fever response", staff: "Dr. Nair", tag: "In progress", tagClass: "active" },
+            { id: "023", label: "Cow 023 · HF", time: "09:22", detail: "Respiratory support — nebulization course (Day 1)", staff: "Dr. Nair", tag: "Done", tagClass: "done" },
+            { id: "033", label: "Cow 033 · HF", time: "11:10", detail: "Mastitis intramammary therapy — AM dose", staff: "Ravi K.", tag: "Done", tagClass: "done" },
+            { id: "052", label: "Cow 052 · HF", time: "11:48", detail: "Brucellosis monitoring — sample sent to lab", staff: "Meena S.", tag: "Scheduled", tagClass: "pending" },
+          ],
+          checkups: [
+            { id: "033", label: "Cow 033 · HF", time: "08:30", detail: "Udder health check — mastitis risk review", staff: "Dr. Nair", tag: "Completed", tagClass: "done" },
+            { id: "045", label: "Cow 045 · HF", time: "09:00", detail: "FMD rule-out exam — oral lesions checked", staff: "Dr. Nair", tag: "Completed", tagClass: "done" },
+            { id: "023", label: "Cow 023 · HF", time: "09:35", detail: "Pneumonia follow-up — lung auscultation", staff: "Dr. Nair", tag: "Completed", tagClass: "done" },
+            { id: "036", label: "Cow 036 · HF", time: "10:40", detail: "Heat stress welfare check — shade & hydration", staff: "Arun P.", tag: "Completed", tagClass: "done" },
+            { id: "067", label: "Cow 067 · Jersey", time: "11:05", detail: "Routine wellness — body condition score", staff: "Meena S.", tag: "Completed", tagClass: "done" },
+          ],
+          other: [
+            { id: "—", label: "Herd Block A", time: "07:30", detail: "Morning round started — 32 animals scheduled", staff: "Supervisor", tag: "Log", tagClass: "" },
+            { id: "—", label: "Vaccination batch", time: "12:00", detail: "FMD-CP booster — 14 animals queued for PM", staff: "Ravi K.", tag: "Planned", tagClass: "pending" },
+            { id: "045", label: "Cow 045 · HF", time: "12:15", detail: "Recheck vitals ordered — post-treatment (pending)", staff: "System", tag: "Pending", tagClass: "pending" },
+          ],
+        },
+      },
+      horse: {
+        brandSubtitle: "Horse Health Intelligence",
+        deviceTitle: "One Device. 5 Vitals.",
+        activitySignalLabel: "Estrus Activity Signal",
+        addButtonLabel: "Add New Horse",
+        addModalTitle: "Add New Horse",
+        addSaveLabel: "Save Horse",
+        idLabel: "Horse ID",
+        managementTitle: "Stable Management",
+        recordsTitle: "Stable Health Records",
+        searchPlaceholder: "Search by Horse ID or Breed",
+        modalImageAlt: "Selected horse",
+        modalImageSrc: "assets/icons/horse-sidebar.jpg",
+        sidebarImage: "assets/icons/horse-sidebar.jpg",
+        sidebarImageAlt: "Horse photo in left sidebar",
+        heatBadgeLabel: "Estrus Likely",
+        queueDefaultLabel: "All animals requiring action",
+        riskGroupsTitle: "Risk Groups",
+        riskGroupsSubtitle: "Monitor and manage common health risks in horses.",
+        riskGroupsQueueNote: "Click a category to filter operational queue",
+        riskGroupsCards: [
+          {
+            title: "Infection",
+            diseases: "Strangles, Equine Influenza, Tetanus",
+            affected: "14",
+            affectedLabel: "Horses affected",
+            note: "Contagious and systemic infection risks",
+            diseaseKey: "infection",
+            icon: "assets/icons/horse-risk-infection.svg",
+          },
+          {
+            title: "Respiratory",
+            diseases: "Equine Influenza, Asthma, Pneumonia",
+            affected: "9",
+            affectedLabel: "Horses affected",
+            note: "Breathing and lung-related risks",
+            diseaseKey: "respiratory",
+            icon: "assets/icons/horse-risk-respiratory.svg",
+          },
+          {
+            title: "Digestive / Colic",
+            diseases: "Colic, Gut Impaction, Digestive Upset",
+            affected: "13",
+            affectedLabel: "Horses affected",
+            note: "Gastrointestinal health and colic monitoring",
+            diseaseKey: "digestive colic",
+            icon: "assets/icons/horse-risk-digestive.svg",
+          },
+          {
+            title: "Hoof & Mobility",
+            diseases: "Laminitis, Lameness, Joint Issues",
+            affected: "7",
+            affectedLabel: "Horses affected",
+            note: "Hoof health and movement performance risks",
+            diseaseKey: "hoof mobility",
+            icon: "assets/icons/horse-risk-mobility.svg",
+          },
+          {
+            title: "Environmental Stress",
+            diseases: "Heat Stress, Dehydration, Overexertion",
+            affected: "8",
+            affectedLabel: "Horses affected",
+            note: "Temperature and workload related alerts",
+            diseaseKey: "environment heat-stress",
+            icon: "assets/icons/horse-risk-environment.svg",
+          },
+        ],
+        dashboardActionRows: [
+          { id: "033", breed: "HF", alert: "Strangles Risk", alertClass: "red", status: "Warning", statusClass: "warning", severity: "42%", severityClass: "sev-high", risk: "79 High", riskClass: "high", lastAbnormal: "32 May 2025", disease: "strangles infection", priority: "infection" },
+          { id: "045", breed: "Thoroughbred", alert: "Heat Exhaustion", alertClass: "red", status: "Observe", statusClass: "moderate", severity: "73%", severityClass: "sev-critical", risk: "89 Critical", riskClass: "critical", lastAbnormal: "38 May 2025", disease: "heat-stress environment", priority: "environment" },
+          { id: "023", breed: "Arabian", alert: "Equine Asthma Risk", alertClass: "purple", status: "Warning", statusClass: "warning", severity: "88%", severityClass: "sev-critical", risk: "92 Critical", riskClass: "critical", lastAbnormal: "32 May 2025", disease: "asthma respiratory", priority: "respiratory" },
+          { id: "036", breed: "HF", alert: "Colic Pattern", alertClass: "blue", status: "Monitor", statusClass: "monitor", severity: "39%", severityClass: "sev-medium", risk: "37 Low", riskClass: "low", lastAbnormal: "32 May 2025", disease: "colic digestive", priority: "digestive" },
+          { id: "052", breed: "Warmblood", alert: "Lameness Watch", alertClass: "purple", status: "Observe", statusClass: "moderate", severity: "57%", severityClass: "sev-high", risk: "63 Medium", riskClass: "high", lastAbnormal: "30 May 2025", disease: "lameness hoof mobility", priority: "mobility" },
+        ],
+        diseaseDistribution: {
+          totalCases: 92,
+          rows: [
+            { key: "strangles", dot: "mast", label: "Strangles", percent: 24, count: 22 },
+            { key: "equine-influenza", dot: "fmd", label: "Equine Influenza", percent: 18, count: 17 },
+            { key: "colic", dot: "bruc", label: "Colic", percent: 16, count: 15 },
+            { key: "laminitis", dot: "hs", label: "Laminitis", percent: 13, count: 12 },
+            { key: "equine-asthma", dot: "tick", label: "Equine Asthma", percent: 10, count: 9 },
+            { key: "dehydration", dot: "bq", label: "Dehydration", percent: 8, count: 7 },
+            { key: "tetanus", dot: "lsd", label: "Tetanus", percent: 6, count: 6 },
+            { key: "joint-strain", dot: "anth", label: "Joint Strain", percent: 5, count: 4 },
+          ],
+        },
+        alertQueueRows: [
+          { id: "033", type: "Strangles Exposure", priority: "Critical", priorityClass: "sev-critical", time: "10 min ago", action: "Isolate horse and notify vet", status: "Open", statusClass: "high" },
+          { id: "023", type: "Respiratory Distress", priority: "Needs Review", priorityClass: "sev-high", time: "22 min ago", action: "Check breathing effort and oxygen", status: "Pending", statusClass: "medium" },
+          { id: "036", type: "Colic Risk", priority: "Monitor", priorityClass: "sev-medium", time: "40 min ago", action: "Assess gut sounds and hydration", status: "Watching", statusClass: "" },
+          { id: "052", type: "Lameness Trend", priority: "Needs Review", priorityClass: "sev-high", time: "1 hr ago", action: "Schedule gait check and hoof exam", status: "Pending", statusClass: "medium" },
+          { id: "045", type: "Heat Stress", priority: "Critical", priorityClass: "sev-critical", time: "1 hr ago", action: "Cool down and fluid recovery now", status: "Open", statusClass: "high" },
+        ],
+        filterTitles: {
+          all: "All Horses",
+          healthy: "Healthy Horses",
+          "at-risk": "At Risk Horses",
+          sick: "Sick Horses",
+          heat: "Estrus Alerts",
+        },
+        dailyReport: {
+          title: "Today's Daily Report",
+          subtitle: "Stable rounds — vitals, treatments, and checkups completed today",
+          dateLabel: "Thursday, 22 May 2026",
+          syncLabel: "Last device sync: 06:52",
+          summaryNotes: {
+            vitals: "5-vital device sessions",
+            treatments: "Medication & protocols",
+            checkups: "Clinical reviews",
+            completed: "Full round finished",
+          },
+          summary: { vitals: 16, treatments: 5, checkups: 12, completed: 14 },
+          vitals: [
+            { id: "033", label: "Horse 033 · Warmblood", time: "07:55", detail: "HR 44 · Temp 38.1°C · SpO₂ 97% · Resp 14 · Estrus: Low", staff: "Ravi K.", tag: "Complete", tagClass: "done" },
+            { id: "045", label: "Horse 045 · Thoroughbred", time: "08:20", detail: "HR 52 · Temp 39.4°C · SpO₂ 94% · Resp 18 · Estrus: Low", staff: "Ravi K.", tag: "Flagged", tagClass: "flagged" },
+            { id: "023", label: "Horse 023 · Arabian", time: "09:10", detail: "HR 48 · Temp 38.8°C · SpO₂ 93% · Resp 22 · Estrus: Medium", staff: "Meena S.", tag: "Complete", tagClass: "done" },
+            { id: "052", label: "Horse 052 · Warmblood", time: "10:02", detail: "HR 40 · Temp 38.0°C · SpO₂ 98% · Resp 12 · Estrus: Low", staff: "Arun P.", tag: "Complete", tagClass: "done" },
+          ],
+          treatments: [
+            { id: "045", label: "Horse 045 · Thoroughbred", time: "08:50", detail: "Heat exhaustion — IV fluids & cooling protocol", staff: "Dr. Nair", tag: "Active", tagClass: "active" },
+            { id: "023", label: "Horse 023 · Arabian", time: "09:40", detail: "Respiratory bronchodilator — asthma management", staff: "Dr. Nair", tag: "Done", tagClass: "done" },
+            { id: "036", label: "Horse 036 · HF", time: "11:20", detail: "Colic monitoring — analgesia & gut motility watch", staff: "Meena S.", tag: "In progress", tagClass: "active" },
+          ],
+          checkups: [
+            { id: "033", label: "Horse 033 · Warmblood", time: "08:05", detail: "Strangles exposure screening — isolation review", staff: "Dr. Nair", tag: "Completed", tagClass: "done" },
+            { id: "023", label: "Horse 023 · Arabian", time: "09:25", detail: "Respiratory exam — airway noise & effort", staff: "Dr. Nair", tag: "Completed", tagClass: "done" },
+            { id: "052", label: "Horse 052 · Warmblood", time: "10:15", detail: "Lameness gait assessment — hoof balance check", staff: "Arun P.", tag: "Completed", tagClass: "done" },
+            { id: "036", label: "Horse 036 · HF", time: "11:00", detail: "Colic risk check — gut sounds & hydration", staff: "Meena S.", tag: "Completed", tagClass: "done" },
+          ],
+          other: [
+            { id: "—", label: "Stable Block B", time: "07:15", detail: "Morning round — 18 horses on today's list", staff: "Supervisor", tag: "Log", tagClass: "" },
+            { id: "—", label: "Farrier visit", time: "14:00", detail: "Hoof trim — 6 horses scheduled", staff: "External", tag: "Planned", tagClass: "pending" },
+          ],
+        },
+      },
+    };
+
+    let currentSpecies = "cattle";
+    let filterTitles = {
+      all: "All Animals",
+      healthy: "Healthy Animals",
+      "at-risk": "At Risk Animals",
+      sick: "Sick Animals",
+      heat: "Estrous Detection Alerts",
+    };
+
+    const screenTitles = {
+      dashboard: "DASHBOARD - OVERVIEW",
+      herd: "ANIMALS",
+      checkup: "HEALTH RECORDS",
+      analysis: "ALERTS",
+      heat: "SYNC DATA",
+      reports: "SETTINGS",
+    };
+
+    function getCurrentSpeciesConfig() {
+      return speciesConfig[currentSpecies] || speciesConfig.cattle;
+    }
+
+    function applySpeciesConfig(species) {
+      if (!speciesConfig[species]) return;
+      currentSpecies = species;
+      const config = getCurrentSpeciesConfig();
+
+      document.getElementById("brand-subtitle").textContent = config.brandSubtitle;
+      document.getElementById("device-vitals-title").textContent = config.deviceTitle;
+      document.getElementById("device-signal-label").textContent = config.activitySignalLabel;
+      addCattleButton.textContent = config.addButtonLabel;
+      document.getElementById("add-animal-title").textContent = config.addModalTitle;
+      document.getElementById("add-animal-submit").textContent = config.addSaveLabel;
+      document.getElementById("add-animal-id-label").textContent = config.idLabel;
+      document.getElementById("management-title").textContent = config.managementTitle;
+      document.getElementById("records-title").textContent = config.recordsTitle;
+      document.getElementById("risk-groups-title").textContent = config.riskGroupsTitle;
+      document.getElementById("risk-groups-subtitle").textContent = config.riskGroupsSubtitle;
+      document.getElementById("risk-groups-queue-note").textContent = config.riskGroupsQueueNote;
+      const modalImage = document.getElementById("modal-cow-image");
+      modalImage.alt = config.modalImageAlt;
+      if (config.modalImageSrc) modalImage.src = config.modalImageSrc;
+      const sidebarSpeciesImage = document.getElementById("sidebar-species-image");
+      if (sidebarSpeciesImage) {
+        sidebarSpeciesImage.src = config.sidebarImage;
+        sidebarSpeciesImage.alt = config.sidebarImageAlt;
+      }
+
+      herdSearch.placeholder = config.searchPlaceholder;
+      herdSort.querySelector('option[value="id-asc"]').textContent = `${config.idLabel} (A-Z)`;
+      herdSort.querySelector('option[value="id-desc"]').textContent = `${config.idLabel} (Z-A)`;
+
+      document.querySelectorAll(".species-id-head").forEach((head) => {
+        head.textContent = config.idLabel;
+      });
+
+      filterTitles = config.filterTitles;
+      herdFilterChip.textContent = filterTitles.all;
+      queueFilterLabel.textContent = `Showing: ${config.queueDefaultLabel}`;
+      updateRiskGroupCards(config.riskGroupsCards || []);
+      updateDashboardActionRows(config.dashboardActionRows || []);
+      updateDiseaseDistribution(config.diseaseDistribution || { rows: [] });
+      updateAlertQueueRows(config.alertQueueRows || []);
+      updateDailyReport(config.dailyReport || null);
+
+      if (activeAnimalDetail && cattleModal.classList.contains("open")) {
+        openCattleModal(activeAnimalDetail.id);
+      }
+    }
+
+    function updateDailyReport(report) {
+      const panel = document.getElementById("daily-report-panel");
+      if (!panel || !report) return;
+
+      document.getElementById("daily-report-title").textContent = report.title;
+      document.getElementById("daily-report-subtitle").textContent = report.subtitle;
+      document.getElementById("daily-report-date").textContent = report.dateLabel;
+      document.getElementById("daily-report-sync").textContent = report.syncLabel;
+
+      const notes = report.summaryNotes || {};
+      document.getElementById("daily-kpi-vitals-note").textContent = notes.vitals || "";
+      document.getElementById("daily-kpi-treatments-note").textContent = notes.treatments || "";
+      document.getElementById("daily-kpi-checkups-note").textContent = notes.checkups || "";
+      document.getElementById("daily-kpi-completed-note").textContent = notes.completed || "";
+
+      const s = report.summary || {};
+      const vitalsN = s.vitals ?? 0;
+      const treatmentsN = s.treatments ?? 0;
+      const checkupsN = s.checkups ?? 0;
+      const completedN = s.completed ?? 0;
+      document.getElementById("daily-kpi-vitals").textContent = vitalsN;
+      document.getElementById("daily-kpi-treatments").textContent = treatmentsN;
+      document.getElementById("daily-kpi-checkups").textContent = checkupsN;
+      document.getElementById("daily-kpi-completed").textContent = completedN;
+      document.getElementById("daily-mini-vitals").textContent = vitalsN;
+      document.getElementById("daily-mini-treatments").textContent = treatmentsN;
+      document.getElementById("daily-mini-checkups").textContent = checkupsN;
+      document.getElementById("daily-mini-completed").textContent = completedN;
+
+      const renderItems = (items, listId, countId) => {
+        const list = document.getElementById(listId);
+        const countEl = document.getElementById(countId);
+        const rows = items || [];
+        if (countEl) countEl.textContent = String(rows.length);
+        if (!list) return;
+        if (!rows.length) {
+          list.innerHTML = `<li class="daily-activity-empty">Nothing recorded yet today.</li>`;
+          return;
+        }
+        list.innerHTML = rows
+          .map((item) => {
+            const clickable = item.id && item.id !== "—";
+            return `
+          <li class="daily-activity-item${clickable ? " clickable-cattle" : ""}"${clickable ? ` data-cow-id="${item.id}"` : ""}>
+            <div class="daily-activity-top">
+              <strong>${item.label}</strong>
+              <span class="daily-time">${item.time}</span>
+            </div>
+            <p class="daily-detail">${item.detail}</p>
+            <div class="daily-activity-foot">
+              <span class="daily-staff">${item.staff}</span>
+              <span class="daily-tag ${item.tagClass || ""}">${item.tag}</span>
+            </div>
+          </li>`;
+          })
+          .join("");
+        list.querySelectorAll(".clickable-cattle").forEach(bindClickableCattleRow);
+      };
+
+      renderItems(report.vitals, "daily-vitals-list", "daily-vitals-count");
+      renderItems(report.treatments, "daily-treatments-list", "daily-treatments-count");
+      renderItems(report.checkups, "daily-checkups-list", "daily-checkups-count");
+      renderItems(report.other, "daily-other-list", "daily-other-count");
+    }
+
+    function updateRiskGroupCards(cards) {
+      const reportCards = document.querySelectorAll("#action-summary-filters .report-card");
+      reportCards.forEach((card, index) => {
+        const data = cards[index];
+        if (!data) return;
+        card.dataset.disease = data.diseaseKey;
+        const icon = card.querySelector(".report-icon img");
+        if (icon && data.icon) icon.src = data.icon;
+        const title = card.querySelector("h4");
+        if (title) {
+          const iconHtml = title.querySelector(".report-icon")?.outerHTML || "";
+          title.innerHTML = `${iconHtml}${data.title}`;
+        }
+        const diseaseList = card.querySelector(".category-list");
+        if (diseaseList) diseaseList.textContent = data.diseases;
+        const affectedCount = card.querySelector(".category-metric strong");
+        if (affectedCount) affectedCount.textContent = data.affected;
+        const affectedLabel = card.querySelector(".category-metric span");
+        if (affectedLabel) affectedLabel.textContent = data.affectedLabel;
+        const note = card.querySelector("small");
+        if (note) note.textContent = data.note;
+      });
+    }
+
+    function updateDashboardActionRows(rows) {
+      dashboardActionBody.innerHTML = rows.map((row) => `
+        <tr class="clickable-cattle" data-cow-id="${row.id}" data-disease="${row.disease}" data-priority="${row.priority}">
+          <td>${row.id}</td>
+          <td>${row.breed}</td>
+          <td><span class="pill ${row.alertClass}">${row.alert}</span></td>
+          <td><span class="status-pill ${row.statusClass}">${row.status}</span></td>
+          <td><span class="sev-pill ${row.severityClass}">${row.severity}</span></td>
+          <td><span class="risk-pill ${row.riskClass}">${row.risk}</span></td>
+          <td>${row.lastAbnormal}</td>
+        </tr>
+      `).join("");
+
+      queueRows = dashboardActionBody.querySelectorAll("tr");
+      queueRows.forEach(bindClickableCattleRow);
+    }
+
+    function updateDiseaseDistribution(distribution) {
+      const totalEl = document.querySelector(".donut-center small");
+      if (totalEl) totalEl.textContent = `(${distribution.totalCases || 0} cases)`;
+
+      diseaseMixFilters.forEach((item, index) => {
+        const row = distribution.rows?.[index];
+        if (!row) return;
+        item.dataset.disease = row.key;
+        item.innerHTML = `<span class="dot ${row.dot}"></span>${row.label}: <strong>${row.percent}%</strong> <small>(${row.count})</small>`;
+      });
+    }
+
+    function updateAlertQueueRows(rows) {
+      alertsQueueBody.innerHTML = rows.map((row) => `
+        <tr class="clickable-cattle" data-cow-id="${row.id}">
+          <td>${row.id}</td>
+          <td>${row.type}</td>
+          <td><span class="sev-pill ${row.priorityClass}">${row.priority}</span></td>
+          <td>${row.time}</td>
+          <td>${row.action}</td>
+          <td><span class="badge ${row.statusClass}">${row.status}</span></td>
+        </tr>
+      `).join("");
+
+      alertsQueueBody.querySelectorAll(".clickable-cattle").forEach(bindClickableCattleRow);
+    }
+
+    function setActiveScreen(screenId) {
+      screens.forEach((screen) => {
+        screen.classList.toggle("active", screen.id === screenId);
+      });
+
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.dataset.screen === screenId);
+      });
+
+      pageTitle.textContent = screenTitles[screenId] || "DASHBOARD - OVERVIEW";
+    }
+
+    navLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        setActiveScreen(link.dataset.screen);
+        if (link.dataset.screen === "herd") {
+          applyHerdFilter("all");
+        }
+      });
+    });
+
+    function getCheckMinutes(value) {
+      const text = (value || "").toLowerCase().trim();
+      const amount = parseInt(text, 10);
+      if (text.includes("min")) return amount;
+      if (text.includes("hr")) return amount * 60;
+      return 9999;
+    }
+
+    function sortHerdRows(mode) {
+      const rows = Array.from(herdTableBody.querySelectorAll("tr"));
+
+      rows.sort((a, b) => {
+        const aId = a.children[0].textContent.trim();
+        const bId = b.children[0].textContent.trim();
+        const aAge = parseInt(a.children[2].textContent, 10);
+        const bAge = parseInt(b.children[2].textContent, 10);
+        const aCheck = getCheckMinutes(a.children[3].textContent);
+        const bCheck = getCheckMinutes(b.children[3].textContent);
+
+        if (mode === "id-desc") return bId.localeCompare(aId);
+        if (mode === "age-asc") return aAge - bAge;
+        if (mode === "age-desc") return bAge - aAge;
+        if (mode === "check-asc") return aCheck - bCheck;
+        if (mode === "check-desc") return bCheck - aCheck;
+        return aId.localeCompare(bId);
+      });
+
+      rows.forEach((row) => herdTableBody.appendChild(row));
+    }
+
+    function applyHerdFilter(filter, label = null) {
+      const searchValue = (herdSearch?.value || "").toLowerCase().trim();
+      const statusValue = herdStatusFilter?.value || "all";
+      const ageValue = herdAgeFilter?.value || "all";
+      const breedValue = herdBreedFilter?.value || "all";
+      const activeFilter = filter || "all";
+
+      herdTableBody.querySelectorAll("tr").forEach((row) => {
+        const tags = (row.dataset.health || "").split(" ");
+        const rowText = row.textContent.toLowerCase();
+        const rowBreed = row.children[1].textContent.trim();
+        const rowAge = parseInt(row.children[2].textContent, 10);
+        const matchesBaseFilter = activeFilter === "all" || tags.includes(activeFilter);
+        const matchesStatusFilter = statusValue === "all" || tags.includes(statusValue);
+        const matchesAgeFilter = ageValue === "all" || rowAge === parseInt(ageValue, 10);
+        const matchesBreedFilter = breedValue === "all" || rowBreed === breedValue;
+        const matchesSearch = !searchValue || rowText.includes(searchValue);
+        const visible = matchesBaseFilter && matchesStatusFilter && matchesAgeFilter && matchesBreedFilter && matchesSearch;
+        row.classList.toggle("row-hidden", !visible);
+      });
+
+      herdFilterChip.textContent = label || filterTitles[activeFilter] || "All Animals";
+    }
+
+    function applyQueueFilter({ disease = null, priority = null, label = getCurrentSpeciesConfig().queueDefaultLabel }) {
+      queueRows.forEach((row) => {
+        const diseaseMatch = !disease || (row.dataset.disease || "").includes(disease);
+        const priorityMatch = !priority || (row.dataset.priority || "").includes(priority);
+        row.classList.toggle("row-hidden", !(diseaseMatch && priorityMatch));
+      });
+      queueFilterLabel.textContent = `Showing: ${label}`;
+    }
+
+    function renderList(elementId, items) {
+      const target = document.getElementById(elementId);
+      target.innerHTML = "";
+      items.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        target.appendChild(li);
+      });
+    }
+
+    function getHealthBadge(health) {
+      if (health === "healthy") return '<span class="badge">Stable</span>';
+      if (health === "at-risk") return '<span class="badge medium">Moderate Risk</span>';
+      if (health === "sick") return '<span class="badge high">Sick</span>';
+      return `<span class="badge heat">${getCurrentSpeciesConfig().heatBadgeLabel}</span>`;
+    }
+
+    function bindClickableCattleRow(row) {
+      row.addEventListener("click", () => {
+        openCattleModal(row.dataset.cowId);
+      });
+    }
+
+    function closeAddCattleModal() {
+      addCattleModal.classList.remove("open");
+      addCattleModal.setAttribute("aria-hidden", "true");
+      addCattleForm.reset();
+    }
+
+    function seedFromId(id) {
+      return [...String(id)].reduce((acc, ch, i) => acc + ch.charCodeAt(0) * (i + 1), 0);
+    }
+
+    function parseVitalsLines(lines) {
+      const v = { hr: null, spo2: null, temp: null, resp: null, activity: "—" };
+      (lines || []).forEach((line) => {
+        let m = line.match(/Heart Rate:\s*([\d.]+)/i);
+        if (m) v.hr = parseFloat(m[1]);
+        m = line.match(/SpO[₂2]:\s*([\d.]+)/i);
+        if (m) v.spo2 = parseFloat(m[1]);
+        m = line.match(/Temperature:\s*([\d.]+)/i);
+        if (m) v.temp = parseFloat(m[1]);
+        m = line.match(/Respiration:\s*([\d.]+)/i);
+        if (m) v.resp = parseFloat(m[1]);
+        m = line.match(/Estrous Index:\s*(.+)$/i) || line.match(/Heat Activity:\s*(.+)$/i);
+        if (m) v.activity = m[1].trim();
+      });
+      return v;
+    }
+
+    function buildTrend(base, id, variance, count) {
+      const seed = seedFromId(id);
+      const n = count || TREND_DAYS.length;
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const wobble = Math.sin((seed + i) * 0.65) * variance + ((seed * (i + 3)) % 9) * 0.06;
+        out.push(Math.round((base + wobble) * 10) / 10);
+      }
+      return out;
+    }
+
+    function enrichAnimalDetails(raw) {
+      const parsed = parseVitalsLines(raw.vitals);
+      const id = raw.id;
+      const temp = parsed.temp ?? 39.0;
+      const hr = parsed.hr ?? 80;
+      const spo2 = parsed.spo2 ?? 95;
+      const resp = parsed.resp ?? 32;
+      const title = (raw.resultTitle || "").toLowerCase();
+      let statusClass = "";
+      let statusLabel = "Stable";
+      if (title.includes("critical") || title.includes("fever") || title.includes("sick") || title.includes("high alert")) {
+        statusClass = "crit";
+        statusLabel = "Critical";
+      } else if (title.includes("risk") || title.includes("at risk") || title.includes("observe")) {
+        statusClass = "warn";
+        statusLabel = "At risk";
+      }
+
+      return {
+        ...raw,
+        parsed,
+        statusClass,
+        statusLabel,
+        healthScore: raw.healthScore ?? (statusClass === "crit" ? 62 : statusClass === "warn" ? 74 : 88),
+        lastVitalsAt: raw.lastVitalsAt || "Today 08:12",
+        activeAlert: raw.activeAlert || raw.resultTitle || "Routine monitoring",
+        tempTrend: raw.tempTrend || buildTrend(temp, id, 0.35),
+        hrTrend: raw.hrTrend || buildTrend(hr, id + "hr", 4),
+        spo2Trend: raw.spo2Trend || buildTrend(spo2, id + "o2", 2),
+        respTrend: raw.respTrend || buildTrend(resp, id + "rp", 3),
+        todayLog: raw.todayLog || [
+          `08:12 — Full 5-vital check (${temp}°C, HR ${hr} bpm)`,
+          `08:30 — ${raw.resultTitle || "Health"} review logged`,
+          ...(raw.advice?.[0] ? [`09:00 — ${raw.advice[0]}`] : []),
+        ],
+      };
+    }
+
+    function vitalTileState(metric, value, norms) {
+      if (value == null || Number.isNaN(value)) return "";
+      const n = norms[metric];
+      if (!n || metric === "activity") return "is-good";
+      if (value < n.min) return "is-low";
+      if (value > n.max) return "is-high";
+      return "is-good";
+    }
+
+    function drawAnimalChart(canvasId, data, opts) {
+      const canvas = document.getElementById(canvasId);
+      const wrap = canvas?.parentElement;
+      const tip = wrap?.querySelector(".animal-chart-tooltip");
+      if (!canvas || !wrap || !data?.length) return false;
+
+      const dpr = window.devicePixelRatio || 1;
+      let w = wrap.clientWidth || 400;
+      let h = wrap.clientHeight || 200;
+      if (w < 24) return false;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const pad = { t: 14, r: 14, b: 26, l: 38 };
+      const plotW = w - pad.l - pad.r;
+      const plotH = h - pad.t - pad.b;
+      const min = Math.min(...data, opts.targetMin ?? data[0]) - (opts.padMin ?? 1);
+      const max = Math.max(...data, opts.targetMax ?? data[0]) + (opts.padMax ?? 1);
+      const range = max - min || 1;
+      const xAt = (i) => pad.l + (i / (data.length - 1)) * plotW;
+      const yAt = (v) => pad.t + plotH - ((v - min) / range) * plotH;
+
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.t + (plotH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(pad.l + plotW, y);
+        ctx.stroke();
+      }
+
+      if (opts.targetMin != null && opts.targetMax != null) {
+        ctx.fillStyle = "rgba(34, 197, 94, 0.08)";
+        ctx.fillRect(pad.l, yAt(opts.targetMax), plotW, yAt(opts.targetMin) - yAt(opts.targetMax));
+      }
+
+      ctx.beginPath();
+      data.forEach((v, i) => {
+        const x = xAt(i);
+        const y = yAt(v);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(xAt(data.length - 1), pad.t + plotH);
+      ctx.lineTo(xAt(0), pad.t + plotH);
+      ctx.closePath();
+      ctx.fillStyle = opts.fill || "rgba(37, 99, 235, 0.12)";
+      ctx.fill();
+
+      ctx.strokeStyle = opts.color || "#2563eb";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      data.forEach((v, i) => {
+        const x = xAt(i);
+        const y = yAt(v);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      data.forEach((v, i) => {
+        ctx.fillStyle = opts.color || "#2563eb";
+        ctx.beginPath();
+        ctx.arc(xAt(i), yAt(v), 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px Inter, sans-serif";
+      TREND_DAYS.forEach((label, i) => {
+        if (i % 2 === 0 || i === TREND_DAYS.length - 1) {
+          ctx.fillText(label, xAt(i) - 14, h - 8);
+        }
+      });
+
+      if (tip) {
+        canvas.onmousemove = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          let idx = 0;
+          let best = Infinity;
+          data.forEach((_, i) => {
+            const dx = Math.abs(xAt(i) - x);
+            if (dx < best) {
+              best = dx;
+              idx = i;
+            }
+          });
+          tip.style.display = "block";
+          tip.textContent = `${TREND_DAYS[idx]}: ${data[idx]}${opts.suffix || ""}`;
+          tip.style.left = `${xAt(idx)}px`;
+          tip.style.top = `${yAt(data[idx]) - 28}px`;
+        };
+        canvas.onmouseleave = () => {
+          tip.style.display = "none";
+        };
+      }
+      return true;
+    }
+
+    function drawAnimalCharts(details) {
+      const norms = VITAL_NORMS[currentSpecies] || VITAL_NORMS.cattle;
+      const charts = [
+        {
+          id: "animal-chart-temp",
+          data: details.tempTrend,
+          opts: {
+            color: "#dc2626",
+            fill: "rgba(220, 38, 38, 0.1)",
+            targetMin: norms.temp.min,
+            targetMax: norms.temp.max,
+            suffix: "°C",
+            padMin: 0.4,
+            padMax: 0.4,
+          },
+        },
+        {
+          id: "animal-chart-hr",
+          data: details.hrTrend,
+          opts: {
+            color: "#7c3aed",
+            fill: "rgba(124, 58, 237, 0.1)",
+            targetMin: norms.hr.min,
+            targetMax: norms.hr.max,
+            suffix: " bpm",
+          },
+        },
+        {
+          id: "animal-chart-spo2",
+          data: details.spo2Trend,
+          opts: {
+            color: "#0891b2",
+            fill: "rgba(8, 145, 178, 0.1)",
+            targetMin: norms.spo2.min,
+            targetMax: 100,
+            suffix: "%",
+          },
+        },
+        {
+          id: "animal-chart-resp",
+          data: details.respTrend,
+          opts: {
+            color: "#059669",
+            fill: "rgba(5, 150, 105, 0.1)",
+            targetMin: norms.resp.min,
+            targetMax: norms.resp.max,
+            suffix: " rpm",
+          },
+        },
+      ];
+      charts.forEach((c) => drawAnimalChart(c.id, c.data, c.opts));
+    }
+
+    function closeCattleModal() {
+      cattleModal.classList.remove("open");
+      cattleModal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      activeAnimalDetail = null;
+    }
+
+    function openCattleModal(cowId) {
+      const raw = cattleData[cowId];
+      if (!raw) return;
+      const details = enrichAnimalDetails(raw);
+      activeAnimalDetail = details;
+      const norms = VITAL_NORMS[currentSpecies] || VITAL_NORMS.cattle;
+      const p = details.parsed;
+
+      document.getElementById("modal-cow-id").textContent = `${getCurrentSpeciesConfig().idLabel}: ${details.id}`;
+      document.getElementById("modal-cow-name").textContent = details.name;
+      document.getElementById("modal-cow-breed").textContent = details.breed;
+      document.getElementById("modal-cow-age").textContent = `Age — ${details.age}`;
+      document.getElementById("modal-health-score").textContent = `Health score: ${details.healthScore}/100`;
+      document.getElementById("modal-last-check").textContent = `Last vitals: ${details.lastVitalsAt}`;
+      document.getElementById("modal-active-alert").textContent = details.activeAlert;
+
+      const statusEl = document.getElementById("modal-health-status");
+      statusEl.textContent = details.statusLabel;
+      statusEl.className = `animal-status-pill ${details.statusClass}`.trim();
+
+      document.getElementById("modal-activity-label").textContent = norms.activityLabel;
+      document.getElementById("modal-vital-temp").textContent = p.temp != null ? `${p.temp}°C` : "—";
+      document.getElementById("modal-vital-hr").textContent = p.hr != null ? String(p.hr) : "—";
+      document.getElementById("modal-vital-spo2").textContent = p.spo2 != null ? String(p.spo2) : "—";
+      document.getElementById("modal-vital-resp").textContent = p.resp != null ? String(p.resp) : "—";
+      document.getElementById("modal-vital-activity").textContent = p.activity;
+
+      document.querySelectorAll(".animal-vital-tile").forEach((tile) => {
+        const metric = tile.dataset.metric;
+        let val = null;
+        if (metric === "temp") val = p.temp;
+        else if (metric === "hr") val = p.hr;
+        else if (metric === "spo2") val = p.spo2;
+        else if (metric === "resp") val = p.resp;
+        tile.className = `animal-vital-tile ${metric !== "activity" ? vitalTileState(metric, val, norms) : ""}`.trim();
+      });
+
+      document.getElementById("modal-result-title").textContent = details.resultTitle;
+      document.getElementById("modal-result-note").textContent = details.resultNote;
+      document.getElementById("modal-result-status").textContent = details.statusLabel;
+      document.getElementById("modal-assignee").textContent = details.assignee || "Worker — Unassigned";
+      document.getElementById("modal-recheck").textContent = details.recheck || "6 hours";
+
+      renderList("modal-vitals", details.vitals || []);
+      renderList("modal-history", details.history || []);
+      renderList("modal-today-list", details.todayLog || []);
+      renderList("modal-protocol", details.protocol || ["Isolate if required", "Run full vitals again", "Notify supervisor"]);
+      renderList("modal-recovery", details.recovery || ["Day 1: Alert logged", "Day 2: Follow-up check due"]);
+      renderList("modal-advice", details.advice || []);
+      renderList("modal-reports", details.reports || []);
+
+      modalTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === "summary"));
+      modalTabContents.forEach((content) => content.classList.toggle("active", content.dataset.tabContent === "summary"));
+
+      cattleModal.classList.add("open");
+      cattleModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => drawAnimalCharts(details));
+      });
+    }
+
+    kpiCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        setActiveScreen("herd");
+        if (herdStatusFilter) herdStatusFilter.value = "all";
+        if (herdSearch) herdSearch.value = "";
+        const label = card.querySelector("p")?.textContent?.trim() || null;
+        applyHerdFilter(card.dataset.filter, label);
+      });
+    });
+
+    herdSearch?.addEventListener("input", () => {
+      applyHerdFilter("all", herdFilterChip.textContent);
+    });
+
+    herdStatusFilter?.addEventListener("change", () => {
+      applyHerdFilter("all", herdFilterChip.textContent);
+    });
+
+    herdAgeFilter?.addEventListener("change", () => {
+      applyHerdFilter("all", herdFilterChip.textContent);
+    });
+
+    herdBreedFilter?.addEventListener("change", () => {
+      applyHerdFilter("all", herdFilterChip.textContent);
+    });
+
+    herdSort?.addEventListener("change", () => {
+      sortHerdRows(herdSort.value);
+      applyHerdFilter("all", herdFilterChip.textContent);
+    });
+
+    speciesSelect?.addEventListener("change", () => {
+      applySpeciesConfig(speciesSelect.value);
+      applyHerdFilter("all");
+      applyQueueFilter({});
+    });
+
+    diseaseMixFilters.forEach((item) => {
+      item.addEventListener("click", () => {
+        setActiveScreen("dashboard");
+        applyQueueFilter({
+          disease: item.dataset.disease,
+          label: item.textContent.trim(),
+        });
+      });
+    });
+
+    actionSummaryFilters.forEach((card) => {
+      card.addEventListener("click", () => {
+        setActiveScreen("dashboard");
+        applyQueueFilter({
+          disease: card.dataset.disease,
+          label: card.querySelector("h4")?.textContent?.trim() || "Priority filter",
+        });
+      });
+    });
+
+    function initDailyReportCollapsibles() {
+      const panel = document.getElementById("daily-report-panel");
+      const mainToggle = document.getElementById("daily-report-toggle");
+      const mainBody = document.getElementById("daily-report-body");
+
+      const setCollapsed = (section, collapsed) => {
+        const btn = section.querySelector(".daily-col-toggle");
+        const body = section.querySelector(".daily-col-body");
+        if (!btn || !body) return;
+        section.classList.toggle("is-collapsed", collapsed);
+        section.classList.toggle("is-expanded", !collapsed);
+        btn.setAttribute("aria-expanded", String(!collapsed));
+        body.hidden = collapsed;
+      };
+
+      mainToggle?.addEventListener("click", () => {
+        const collapsed = panel.classList.toggle("is-collapsed");
+        const expanded = !collapsed;
+        panel.classList.toggle("is-expanded", expanded);
+        mainToggle.setAttribute("aria-expanded", String(expanded));
+        mainBody.hidden = collapsed;
+      });
+
+      panel?.querySelectorAll(".daily-report-col").forEach((col) => {
+        const btn = col.querySelector(".daily-col-toggle");
+        btn?.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const willExpand = col.classList.contains("is-collapsed");
+          setCollapsed(col, !willExpand);
+        });
+      });
+    }
+
+    initDailyReportCollapsibles();
+    applySpeciesConfig(speciesSelect?.value || "cattle");
+    document.querySelectorAll(".clickable-cattle").forEach(bindClickableCattleRow);
+
+    modalTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        modalTabs.forEach((item) => item.classList.toggle("active", item === tab));
+        modalTabContents.forEach((content) => {
+          content.classList.toggle("active", content.dataset.tabContent === tab.dataset.tab);
+        });
+      });
+    });
+
+    cattleModalClose.addEventListener("click", closeCattleModal);
+    cattleModalCloseX?.addEventListener("click", closeCattleModal);
+
+    addCattleButton.addEventListener("click", () => {
+      addCattleModal.classList.add("open");
+      addCattleModal.setAttribute("aria-hidden", "false");
+    });
+
+    addCattleClose.addEventListener("click", closeAddCattleModal);
+    addCattleCancel.addEventListener("click", closeAddCattleModal);
+
+    addCattleForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const id = document.getElementById("new-cattle-id").value.trim();
+      const name = document.getElementById("new-cattle-name").value.trim();
+      const breed = document.getElementById("new-cattle-breed").value;
+      const age = document.getElementById("new-cattle-age").value;
+      const health = document.getElementById("new-cattle-health").value;
+      const lastCheck = document.getElementById("new-cattle-check").value.trim();
+
+      if (!id || !name || !lastCheck) return;
+
+      cattleData[id] = {
+        id,
+        name,
+        breed,
+        age: `${age} Years`,
+        vitals: ["Heart Rate: Pending", "SpO₂: Pending", "Temperature: Pending", "Respiration: Pending", "Estrous Index: Pending"],
+        history: ["New cattle added to herd list"],
+        resultTitle: "New Entry",
+        resultNote: "Detailed health record will populate after first checkup",
+        advice: ["Schedule first handheld device check", "Verify tag mapping in cloud system"],
+        reports: ["Animal added manually from Animals section"],
+      };
+
+      const row = document.createElement("tr");
+      row.className = "clickable-cattle";
+      row.dataset.cowId = id;
+      row.dataset.health = health;
+      row.innerHTML = `
+        <td>${id}</td>
+        <td>${breed}</td>
+        <td>${age} yrs</td>
+        <td>${lastCheck}</td>
+        <td>${getHealthBadge(health)}</td>
+        <td><button class="mini">Open</button></td>
+      `;
+
+      herdTableBody.appendChild(row);
+      bindClickableCattleRow(row);
+      sortHerdRows(herdSort.value);
+      applyHerdFilter("all", herdFilterChip.textContent);
+      closeAddCattleModal();
+    });
+
+    cattleModal.addEventListener("click", (event) => {
+      if (event.target === cattleModal) closeCattleModal();
+    });
+
+    window.addEventListener("resize", () => {
+      if (activeAnimalDetail && cattleModal.classList.contains("open")) {
+        drawAnimalCharts(activeAnimalDetail);
+      }
+    });
+
+    addCattleModal.addEventListener("click", (event) => {
+      if (event.target === addCattleModal) {
+        closeAddCattleModal();
+      }
+    });
+  </script>
+</body>
+</html>

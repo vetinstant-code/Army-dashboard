@@ -1,0 +1,9 @@
+node_modules/
+snake/.git/
+package-lock.json
+.DS_Store
+Thumbs.db
+*.log
+
+# Optional: uncomment to keep password out of git
+# config.api.js

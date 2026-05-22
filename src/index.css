@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background-color: #0B0F14;
+  color: #E5E7EB;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-card {
+  background: #ffffff;
+  border: 1px solid #d8dde3;
+}
+
+.app-subcard {
+  background: #f7f9fb;
+  border: 1px solid #e3e8ee;
+}
+
+.app-title {
+  color: #1f3143;
+}
+
+.app-body {
+  color: #2f4356;
+}
+
+.app-muted {
+  color: #607488;
+}
+
+.app-table-head {
+  color: #5f7387;
+  background: #f7f9fb;
+}

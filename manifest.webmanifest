@@ -1,0 +1,24 @@
+{
+  "name": "VetInstant Cattle Health Intelligence",
+  "short_name": "VetInstant",
+  "description": "Centralized farm dashboard for cattle health monitoring and operational alerts.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f2237",
+  "theme_color": "#0f2237",
+  "icons": [
+    {
+      "src": "assets/icons/pwa-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/pwa-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
