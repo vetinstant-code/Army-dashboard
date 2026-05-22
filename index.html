@@ -452,20 +452,67 @@
         <div class="section-head">
           <div class="section-title-stack">
             <h3 id="records-title">Herd Health Records</h3>
-            <p class="section-subtitle">Awaiting final confirmation for synced herd records structure</p>
+            <p class="section-subtitle" id="records-subtitle">Live device records via API</p>
           </div>
-          <span class="chip">Pending Confirmation</span>
+          <div class="section-head-actions">
+            <span class="chip" id="api-connection-chip">API: idle</span>
+            <button type="button" class="primary header-action" id="api-refresh-btn">Refresh data</button>
+          </div>
         </div>
-        <div class="panel records-placeholder">
-          <h4>Section Reserved</h4>
-          <p>This page is intentionally kept empty for now. Once the AWS-synced record flow is confirmed, this section can be rebuilt with the correct herd-level structure.</p>
-          <ul class="records-placeholder-list">
-            <li>Synced device records</li>
-            <li>Disease history across herd</li>
-            <li>Treatment and vaccination tracking</li>
-            <li>Farm review and follow-up actions</li>
-          </ul>
-        </div>
+
+        <article class="panel health-records-panel">
+          <div class="panel-head">
+            <h3>Ward register — active cases (May 2026)</h3>
+            <p>Hand-recorded issues; matched to API pets when name/ID aligns</p>
+          </div>
+          <div class="table-wrap">
+            <table class="health-records-table" id="ward-register-table">
+              <thead>
+                <tr>
+                  <th>Regt No.</th>
+                  <th>Name</th>
+                  <th>Disease / condition</th>
+                  <th>Admission</th>
+                  <th>Discharge</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ward-register-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel health-records-panel">
+          <div class="panel-head">
+            <h3 id="health-api-title">Horses / pets from device</h3>
+            <p id="health-records-status">Loading…</p>
+          </div>
+          <div class="table-wrap">
+            <table class="health-records-table" id="health-records-table">
+              <thead>
+                <tr>
+                  <th>Pet ID</th>
+                  <th>Name</th>
+                  <th>Sessions</th>
+                  <th>Latest temperature</th>
+                  <th>Vitals status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="health-records-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel health-detail-panel" id="health-detail-panel" hidden>
+          <div class="panel-head">
+            <h3 id="health-detail-title">Temperature detail</h3>
+            <p id="health-detail-meta"></p>
+          </div>
+          <div class="health-temp-grid" id="health-detail-temps"></div>
+          <h4 class="health-sessions-heading">Exam sessions</h4>
+          <ul class="records-placeholder-list" id="health-detail-sessions"></ul>
+        </article>
       </section>
 
       <section class="screen" id="analysis">
@@ -821,6 +868,10 @@
       </form>
     </div>
   </div>
+  <script src="config.api.js"></script>
+  <script src="api-client.js"></script>
+  <script src="api-adapter.js"></script>
+  <script src="live-api.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

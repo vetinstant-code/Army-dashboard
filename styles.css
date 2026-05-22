@@ -1573,6 +1573,91 @@ td {
   line-height: 1.8;
 }
 
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.api-chip-ok {
+  background: #e8f7ee;
+  color: #1a6b3c;
+}
+
+.api-chip-err {
+  background: #fdeaea;
+  color: #9b1c1c;
+}
+
+.health-records-panel {
+  margin-top: 14px;
+}
+
+.health-records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.health-records-table th,
+.health-records-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e3ebf2;
+}
+
+.health-records-table thead th {
+  color: #5a7085;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ward-row-active {
+  background: #fff8e6;
+}
+
+.ward-row-struck td {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.health-detail-panel {
+  margin-top: 16px;
+}
+
+.health-temp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.health-temp-card {
+  background: #f4f8fb;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.health-temp-card strong {
+  display: block;
+  font-size: 22px;
+  color: #0f2237;
+  margin: 4px 0;
+}
+
+.health-sessions-heading {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  color: #1f3143;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
 .add-cattle-card {
   width: min(680px, 100%);
 }
