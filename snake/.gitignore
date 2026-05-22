@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+docs/*.docx
+
+# Design references (not used by the live app)
+assets/*-mockup.png
+assets/ref-*.png
+assets/snake-dashboard-*.png
+assets/logo-vetinstant.png
+assets/sidebar-snake.jpg

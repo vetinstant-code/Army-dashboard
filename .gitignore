@@ -1,5 +1,6 @@
 node_modules/
 snake/.git/
+.vite/
 package-lock.json
 .DS_Store
 Thumbs.db

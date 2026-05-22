@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080b10" id="meta-theme-color" />
+  <meta name="description" content="Snake Zoo Management — health, digestion, breeding, live enclosure cameras, and alerts." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Snake Zoo" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script>
+    (function () {
+      var t = localStorage.getItem("snake-zoo-theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <title>Snake Zoo Management System - VetInstant</title>
+  <link rel="icon" href="assets/images/snake-logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/images/snake-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="enclosure-detail.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="assets/images/snake-logo.png" alt="Snake Zoo Management" />
+        </div>
+        <div class="brand-text">
+          <h1>Snake Zoo</h1>
+          <span class="brand-sub">Management</span>
+          <p>VetInstant</p>
+        </div>
+      </div>
+
+      <nav id="sidebar-nav">
+        <a class="active" href="#dashboard" data-screen="dashboard"><img class="nav-icon" src="assets/icons/overview.svg" alt="" />Dashboard</a>
+        <a href="#enclosures" data-screen="enclosures"><img class="nav-icon" src="assets/icons/enclosure.svg" alt="" />Enclosures</a>
+        <a href="#animals" data-screen="animals"><img class="nav-icon" src="assets/icons/snake.svg" alt="" />Snakes</a>
+        <a href="#health" data-screen="health"><img class="nav-icon" src="assets/icons/health.svg" alt="" />Health Monitoring</a>
+        <a href="#digestion" data-screen="digestion"><img class="nav-icon" src="assets/icons/digestion.svg" alt="" />Digestion Tracking</a>
+        <a href="#breeding" data-screen="breeding"><img class="nav-icon" src="assets/icons/breeding.svg" alt="" />Breeding &amp; Fertility</a>
+        <a href="#feeding" data-screen="feeding"><img class="nav-icon" src="assets/icons/feeding.svg" alt="" />Feeding Schedule</a>
+        <a href="#environment" data-screen="environment"><img class="nav-icon" src="assets/icons/environment.svg" alt="" />Environmental Control</a>
+        <a href="#alerts" data-screen="alerts"><img class="nav-icon" src="assets/icons/alerts.svg" alt="" />Alerts <span class="nav-badge">7</span></a>
+        <a href="#reports" data-screen="reports"><img class="nav-icon" src="assets/icons/reports.svg" alt="" />Reports</a>
+        <a href="#settings" data-screen="settings"><img class="nav-icon" src="assets/icons/settings.svg" alt="" />Settings</a>
+      </nav>
+
+      <div class="facility-summary">
+        <h4>Facility Summary</h4>
+        <div class="facility-grid">
+          <div>Enclosures<strong>32</strong></div>
+          <div>Snakes<strong>78</strong></div>
+          <div>Species<strong id="facility-species-count">—</strong></div>
+          <div>Active Alerts<strong id="facility-alerts-count">—</strong></div>
+          <div>Staff On Duty<strong id="facility-staff-count">—</strong></div>
+        </div>
+      </div>
+
+      <div class="user-profile">
+        <div class="user-avatar">AD</div>
+        <div>
+          <strong>Admin</strong>
+          <span>Zoo Block A</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="screen active" id="dashboard">
+        <header class="top-header">
+          <div>
+            <h2>DASHBOARD</h2>
+            <p class="meta" id="live-datetime">Thursday, 21 May 2026 • 20:45</p>
+          </div>
+          <div class="header-actions">
+            <div class="search-box">
+              <input id="global-search" type="text" placeholder="Search snakes, enclosures, or records..." autocomplete="off" />
+              <img src="assets/icons/search.svg" alt="" />
+              <div id="search-results" class="search-results"></div>
+            </div>
+            <div class="icon-btn notify-btn" title="Notifications">
+              <img src="assets/icons/bell.svg" alt="" />
+              <span class="notify-badge">7</span>
+            </div>
+            <button type="button" class="icon-btn theme-toggle" id="theme-toggle" aria-label="Switch to light mode" title="Switch theme">
+              <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+              </svg>
+              <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 0 0 21 14.5z"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="kpi-row">
+          <article class="kpi-card green" data-nav="animals" title="View all snakes">
+            <div class="kpi-icon-wrap"><img class="kpi-icon" src="assets/icons/kpi-snakes.svg" alt="" /></div>
+            <div class="kpi-body">
+              <p class="kpi-label">TOTAL SNAKES</p>
+              <h3>78</h3>
+              <small class="kpi-sub">↑ 5 this month</small>
+            </div>
+          </article>
+          <article class="kpi-card blue" data-nav="enclosures" title="View enclosures">
+            <div class="kpi-icon-wrap"><img class="kpi-icon" src="assets/icons/kpi-enclosures.svg" alt="" /></div>
+            <div class="kpi-body">
+              <p class="kpi-label">ENCLOSURES</p>
+              <h3>32</h3>
+              <small class="kpi-sub">100% operational</small>
+            </div>
+          </article>
+          <article class="kpi-card purple" data-nav="animals" data-filter="healthy" title="Healthy snakes">
+            <div class="kpi-icon-wrap"><img class="kpi-icon" src="assets/icons/kpi-healthy.svg" alt="" /></div>
+            <div class="kpi-body">
+              <p class="kpi-label">HEALTHY</p>
+              <h3>72</h3>
+              <small class="kpi-sub">92.3% of total</small>
+            </div>
+          </article>
+          <article class="kpi-card orange" data-nav="digestion" title="Digestion tracking">
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <img class="kpi-icon" src="assets/icons/kpi-digest.png?v=4" width="36" height="36" alt="" />
+            </div>
+            <div class="kpi-body">
+              <p class="kpi-label">DIGESTING</p>
+              <h3>18</h3>
+              <small class="kpi-sub">23.1% of total</small>
+            </div>
+          </article>
+          <article class="kpi-card teal" data-nav="breeding" title="Breeding pairs">
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <img class="kpi-icon" src="assets/icons/kpi-breeding.png?v=4" width="36" height="36" alt="" />
+            </div>
+            <div class="kpi-body">
+              <p class="kpi-label">BREEDING PAIRS</p>
+              <h3>14</h3>
+              <small class="kpi-sub">Active</small>
+            </div>
+          </article>
+          <article class="kpi-card pink" data-nav="feeding" title="Feeding schedule">
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <img class="kpi-icon" src="assets/icons/kpi-feeding.png?v=4" width="36" height="36" alt="" />
+            </div>
+            <div class="kpi-body">
+              <p class="kpi-label">FEEDING TODAY</p>
+              <h3>19</h3>
+              <small class="kpi-sub">24.4% of total</small>
+            </div>
+          </article>
+          <article class="kpi-card red" data-nav="alerts" data-filter="active" title="Active alerts">
+            <div class="kpi-icon-wrap"><img class="kpi-icon" src="assets/icons/kpi-alerts.svg" alt="" /></div>
+            <div class="kpi-body">
+              <p class="kpi-label">ACTIVE ALERTS</p>
+              <h3>7</h3>
+              <small class="kpi-sub">Requires attention</small>
+            </div>
+          </article>
+        </div>
+
+        <div class="widget-grid">
+          <article class="widget">
+            <div class="widget-head">
+              <h3>Enclosure Status</h3>
+              <a href="#" data-nav="enclosures">View All</a>
+            </div>
+            <div class="widget-body">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Species</th>
+                    <th>Temp</th>
+                    <th>Humidity</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-enc-tbody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="widget">
+            <div class="widget-head">
+              <h3>Digestion Tracking</h3>
+              <a href="#" data-nav="digestion">View All</a>
+            </div>
+            <div class="widget-body">
+              <div class="digest-list" id="dash-digest-list"></div>
+            </div>
+          </article>
+
+          <article class="widget">
+            <div class="widget-head">
+              <h3>Breeding &amp; Fertility</h3>
+              <a href="#" data-nav="breeding">View All</a>
+            </div>
+            <div class="widget-body">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>Snake ID</th>
+                    <th>Species</th>
+                    <th>Status</th>
+                    <th>Est. Date</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-breed-tbody"></tbody>
+              </table>
+              <div class="breed-pills" id="dash-breed-pills"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="widget-grid-bottom">
+          <article class="widget widget-risk-categories">
+            <div class="widget-head">
+              <h3>Health Risk Categories</h3>
+              <a href="#" data-nav="health">View All</a>
+            </div>
+            <div class="widget-body">
+              <div class="risk-cards-grid" id="dashboard-risk-cards"></div>
+              <div class="risk-legend" aria-label="Risk level scale">
+                <span class="risk-legend-label">Risk Level:</span>
+                <span class="risk-legend-pill low">Low (Good)</span>
+                <span class="risk-legend-pill moderate">Moderate</span>
+                <span class="risk-legend-pill high">High</span>
+                <span class="risk-legend-pill critical">Critical</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="widget widget-cameras">
+            <div class="widget-head">
+              <h3>Live Enclosure Cameras</h3>
+              <a href="#" data-nav="enclosures">View All</a>
+            </div>
+            <div class="widget-body">
+              <div class="camera-grid camera-grid-live" id="camera-grid"></div>
+            </div>
+          </article>
+
+          <article class="widget widget-alerts-panel">
+            <div class="widget-head">
+              <h3>Alerts</h3>
+              <a href="#" data-nav="alerts" data-filter="active">View All</a>
+            </div>
+            <div class="widget-body">
+              <div class="alert-list alert-list-dashboard"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="widget-grid-3">
+          <article class="widget">
+            <div class="widget-head">
+              <h3>Feeding Schedule</h3>
+              <a href="#" data-nav="feeding">View Calendar</a>
+            </div>
+            <div class="widget-body">
+              <div class="feed-calendar" id="dash-feed-calendar"></div>
+            </div>
+          </article>
+
+          <article class="widget">
+            <div class="widget-head">
+              <h3>Recent Activities</h3>
+              <a href="#" id="view-activity-log">View Log</a>
+            </div>
+            <div class="widget-body">
+              <div class="activity-list" id="dash-activity-list"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="screen sub-screen" id="enclosures">
+        <header class="page-header">
+          <div><h2 class="screen-title">ENCLOSURES</h2><p class="meta screen-sub">Rack map, sensors &amp; thermal detail</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div class="screen-toolbar"><span class="toolbar-hint">Click a row for full enclosure intelligence (cameras, charts, digestion)</span></div>
+        <div class="panel">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Species</th><th>Snake</th><th>Temp</th><th>Humidity</th><th>Status</th><th></th></tr></thead>
+            <tbody id="enclosures-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen" id="enclosure-detail">
+        <div class="enc-detail-wrap">
+          <div class="enc-detail-top">
+            <div class="enc-title-block">
+              <button type="button" class="enc-back" id="enc-back">← Back to Enclosures</button>
+              <h1 id="enc-title">ENCLOSURE A-104 — SN-033 Ball Python</h1>
+              <div class="enc-chips">
+                <span class="enc-chip">
+                  <svg viewBox="0 0 24 24"><path d="M12 4c4 0 7 3 7 7s-3 7-7 7"/></svg>
+                  <span id="enc-chip-species-text"></span>
+                </span>
+                <span class="enc-chip">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4 20v-1a8 8 0 0 1 16 0v1"/></svg>
+                  <span id="enc-chip-age-text"></span>
+                </span>
+                <span class="enc-chip">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <span id="enc-chip-date-text"></span>
+                </span>
+                <span class="enc-chip">
+                  <svg viewBox="0 0 24 24"><path d="M20 12l-8 8-4-4V4h8l4 4z"/></svg>
+                  <span id="enc-chip-tag-text"></span>
+                </span>
+                <span class="enc-badge-active">Active</span>
+              </div>
+            </div>
+            <div class="enc-top-actions">
+              <button type="button" class="enc-icon-btn" title="Notifications">🔔</button>
+              <select aria-label="Facility">
+                <option>City Zoo</option>
+                <option>Block A</option>
+                <option>Block B</option>
+              </select>
+              <button type="button" class="enc-icon-btn" title="Facility">🏛</button>
+            </div>
+          </div>
+
+          <p class="enc-cam-note">Synchronized feeds — same snake, same pose in RGB and thermal</p>
+          <div class="enc-camera-grid">
+            <article class="enc-cam-card">
+              <div class="enc-cam-head">
+                <span>Thermal Camera</span>
+                <span class="enc-live">Live</span>
+              </div>
+              <div class="enc-cam-body">
+                <div class="enc-thermal-scale"><span>100°F</span><span>85°</span><span>70°</span></div>
+                <img id="enc-thermal-img" src="assets/thermal/enc-thermal-ball-python.png" alt="Thermal view" />
+                <span class="enc-thermal-pin" id="enc-thermal-pin">88°F</span>
+                <button type="button" class="enc-fs-btn" data-src="" id="enc-fs-thermal" title="Fullscreen">⛶</button>
+              </div>
+            </article>
+            <article class="enc-cam-card">
+              <div class="enc-cam-head">
+                <span>RGB Camera</span>
+                <span class="enc-live">Live</span>
+              </div>
+              <div class="enc-cam-body">
+                <img id="enc-rgb-img" src="assets/images/enc-rgb-ball-python.png" alt="RGB view" />
+                <button type="button" class="enc-fs-btn" data-src="" id="enc-fs-rgb" title="Fullscreen">⛶</button>
+              </div>
+            </article>
+          </div>
+
+          <div class="enc-metrics-grid">
+            <article class="enc-metric-card">
+              <div class="enc-metric-icon hot">
+                <svg viewBox="0 0 24 24"><path d="M14 4v6h6"/><path d="M12 22a8 8 0 0 1-6-14l2-2"/></svg>
+              </div>
+              <div class="enc-metric-body">
+                <small>Hot Spot</small>
+                <strong class="hot" id="enc-hot-val">88°F</strong>
+                <span>Target: 88–92°F</span>
+              </div>
+            </article>
+            <article class="enc-metric-card">
+              <div class="enc-metric-icon cool">
+                <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M8 6l4-4 4 4"/></svg>
+              </div>
+              <div class="enc-metric-body">
+                <small>Cool Zone</small>
+                <strong class="cool" id="enc-cool-val">76°F</strong>
+                <span>Target: 74–78°F</span>
+              </div>
+            </article>
+            <article class="enc-metric-card">
+              <div class="enc-metric-icon humidity">
+                <svg viewBox="0 0 24 24"><path d="M12 4c-4 5-6 8-6 11a6 6 0 0 0 12 0c0-3-2-6-6-11z"/></svg>
+              </div>
+              <div class="enc-metric-body">
+                <small>Humidity</small>
+                <strong class="humidity" id="enc-hum-val">58%</strong>
+                <span>Target: 50–70%</span>
+              </div>
+            </article>
+            <article class="enc-metric-card">
+              <div class="enc-metric-icon weight">
+                <svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7h8"/><path d="M6 11h12"/></svg>
+              </div>
+              <div class="enc-metric-body">
+                <small>Weight</small>
+                <strong class="weight" id="enc-weight-val">623g</strong>
+                <span id="enc-weight-updated">Last updated: May 19, 2024</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="enc-bottom-grid">
+            <article class="enc-chart-card">
+              <div class="enc-chart-head">
+                <h3>Temperature (°F)</h3>
+                <span>Last 24 hours</span>
+              </div>
+              <div class="enc-chart-wrap">
+                <canvas id="chart-temp"></canvas>
+                <div class="enc-chart-tooltip"></div>
+              </div>
+            </article>
+            <article class="enc-chart-card">
+              <div class="enc-chart-head">
+                <h3>Humidity (%)</h3>
+                <span>Last 24 hours</span>
+              </div>
+              <div class="enc-chart-wrap">
+                <canvas id="chart-humidity"></canvas>
+                <div class="enc-chart-tooltip"></div>
+              </div>
+            </article>
+            <article class="enc-digest-panel">
+              <h3 id="enc-digest-title">
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="14" rx="6" ry="5"/><path d="M12 9V6"/></svg>
+                Digesting 78%
+              </h3>
+              <div class="enc-digest-bar"><span id="enc-digest-bar" style="width:78%"></span></div>
+              <p class="enc-digest-meta" id="enc-digest-eta">Estimated completion: May 24, 2024</p>
+              <div class="enc-info-box" id="enc-digest-info">Thermal elevation consistent with active digestion. Continue monitoring.</div>
+              <button type="button" class="btn-sm primary" style="margin-top:12px" data-screen="digestion">Full digestion timeline</button>
+            </article>
+          </div>
+
+          <footer class="enc-footer">
+            <span>All times are local time for enclosure. Data updates every 5 minutes.</span>
+            <button type="button" class="enc-refresh-btn" id="enc-refresh">
+              <span id="enc-data-time">Data from —</span> ↻
+            </button>
+          </footer>
+        </div>
+      </section>
+
+      <section class="screen sub-screen" id="animals">
+        <header class="page-header">
+          <div><h2 class="screen-title">SNAKES REGISTRY</h2><p class="meta screen-sub">Search &amp; open clinical record</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div class="screen-toolbar">
+          <input id="animals-filter" type="search" class="toolbar-search" placeholder="Filter by name, ID, species…" />
+        </div>
+        <div id="animals-grid" class="animals-grid"></div>
+      </section>
+
+      <section class="screen sub-screen health-screen" id="health">
+        <header class="page-header">
+          <div>
+            <h2 class="screen-title">HEALTH MONITORING</h2>
+            <p class="meta screen-sub">Active cases, risk overview &amp; care plans</p>
+          </div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+
+        <div class="health-top">
+          <div class="health-kpi-row" id="health-kpis"></div>
+          <div class="health-toolbar-row">
+            <div class="health-filters" id="health-filters">
+              <button type="button" class="filter-chip active" data-health-filter="all">All</button>
+              <button type="button" class="filter-chip" data-health-filter="critical">Critical</button>
+              <button type="button" class="filter-chip" data-health-filter="at-risk">At risk</button>
+              <button type="button" class="filter-chip" data-health-filter="resp">Respiratory</button>
+              <button type="button" class="filter-chip" data-health-filter="digest">Digestive</button>
+              <button type="button" class="filter-chip" data-health-filter="thermal">Thermal</button>
+            </div>
+            <button type="button" class="btn-sm" id="health-export">Export</button>
+          </div>
+        </div>
+
+        <div class="health-layout">
+          <aside class="health-aside">
+            <div class="health-aside-block">
+              <h4>Risk overview</h4>
+              <div id="health-risks-panel" class="health-risk-compact"></div>
+            </div>
+            <div class="health-aside-block">
+              <h4>Today</h4>
+              <ul class="health-summary-list" id="health-facility-summary"></ul>
+            </div>
+          </aside>
+
+          <div class="health-main">
+            <div class="health-section-head">
+              <h3>Clinical cases</h3>
+              <span id="health-case-count" class="health-count"></span>
+            </div>
+            <div id="health-cases-list" class="health-cases-list"></div>
+
+            <div class="health-section-head">
+              <h3>Activity log</h3>
+            </div>
+            <div id="health-timeline" class="health-timeline-clean"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen sub-screen" id="digestion">
+        <header class="page-header">
+          <div><h2 class="screen-title">DIGESTION TRACKING</h2><p class="meta screen-sub">RGB + thermal progress</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div id="digestion-full-list" class="digest-list panel-pad"></div>
+      </section>
+
+      <section class="screen sub-screen" id="breeding">
+        <header class="page-header">
+          <div><h2 class="screen-title">BREEDING &amp; FERTILITY</h2><p class="meta screen-sub">Gravid &amp; pairing status</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div class="panel">
+          <table class="data-table">
+            <thead><tr><th>Snake ID</th><th>Species</th><th>Status</th><th>Est. Date</th></tr></thead>
+            <tbody id="breeding-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen sub-screen" id="feeding">
+        <header class="page-header">
+          <div><h2 class="screen-title">FEEDING SCHEDULE</h2><p class="meta screen-sub">Weekly prey calendar</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div id="feeding-full-calendar" class="feed-calendar panel-pad"></div>
+      </section>
+
+      <section class="screen sub-screen" id="environment">
+        <header class="page-header">
+          <div><h2 class="screen-title">ENVIRONMENTAL CONTROL</h2><p class="meta screen-sub">Zone temps &amp; humidity</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div id="environment-zones" class="zones-grid panel-pad"></div>
+      </section>
+
+      <section class="screen sub-screen" id="alerts">
+        <header class="page-header">
+          <div><h2 class="screen-title">ALERTS</h2><p class="meta screen-sub">Acknowledge &amp; drill down</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div class="screen-toolbar">
+          <button type="button" class="btn-sm primary" id="btn-ack-all">Acknowledge all</button>
+        </div>
+        <div id="alerts-full-list" class="alert-list panel-pad"></div>
+      </section>
+
+      <section class="screen sub-screen" id="reports">
+        <header class="page-header">
+          <div><h2 class="screen-title">REPORTS</h2><p class="meta screen-sub">Export &amp; compliance</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <div class="reports-grid panel-pad">
+          <button type="button" class="report-btn" data-report="Daily health">Daily Health Summary</button>
+          <button type="button" class="report-btn" data-report="Digestion">Digestion &amp; Thermal</button>
+          <button type="button" class="report-btn" data-report="Breeding">Breeding &amp; Fertility</button>
+          <button type="button" class="report-btn" data-report="Environmental">Environmental Log</button>
+        </div>
+      </section>
+
+      <section class="screen sub-screen" id="settings">
+        <header class="page-header">
+          <div><h2 class="screen-title">SETTINGS</h2><p class="meta screen-sub">Thresholds &amp; alerts</p></div>
+          <button type="button" class="btn-back" data-screen="dashboard">← Dashboard</button>
+        </header>
+        <form class="settings-form panel-pad" id="settings-form">
+          <fieldset class="settings-theme">
+            <legend>Appearance</legend>
+            <label class="theme-option">
+              <input type="radio" name="app-theme" value="dark" checked />
+              <span>Midnight — dark navy &amp; green</span>
+            </label>
+            <label class="theme-option">
+              <input type="radio" name="app-theme" value="light" />
+              <span>Sandstone — warm light &amp; blue</span>
+            </label>
+          </fieldset>
+          <label>Low humidity alert %<input type="number" value="60" min="40" max="90" /></label>
+          <label>Digestion stall hours<input type="number" value="16" min="8" max="48" /></label>
+          <label>Thermal camera sync (min)<input type="number" value="15" min="5" max="60" /></label>
+          <button type="button" class="btn-sm primary" id="save-settings">Save settings</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay" aria-hidden="true">
+    <div class="modal-panel open-target" id="modal-enclosure">
+      <button type="button" class="modal-close" id="modal-close" aria-label="Close">×</button>
+      <h3 id="modal-enclosure-title">PY-101</h3>
+      <p class="modal-meta"><span id="modal-enclosure-species"></span> · Snake <span id="modal-enclosure-snake"></span></p>
+      <div class="modal-stats">
+        <div><small>Temp</small><strong id="modal-enclosure-temp"></strong></div>
+        <div><small>Humidity</small><strong id="modal-enclosure-humidity"></strong></div>
+        <div><small>Status</small><strong id="modal-enclosure-status" class="status-pill"></strong></div>
+      </div>
+      <div class="modal-cameras">
+        <figure><figcaption>RGB Live</figcaption><img id="modal-rgb-img" alt="RGB feed" /></figure>
+        <figure><figcaption>Thermal</figcaption><img id="modal-thermal-img" alt="Thermal feed" /></figure>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="modal-open-snake" data-id="">View snake record</button>
+        <button type="button" class="btn-sm primary" data-screen="environment">Environmental log</button>
+      </div>
+    </div>
+
+    <div class="modal-panel" id="modal-snake">
+      <button type="button" class="modal-close" aria-label="Close">×</button>
+      <h3 id="modal-snake-title">Snake</h3>
+      <p class="modal-meta" id="modal-snake-meta"></p>
+      <p>Health: <span id="modal-snake-health" class="status-pill"></span></p>
+      <div id="modal-snake-digest-row">
+        <p id="modal-snake-fed"></p>
+        <div class="progress-bar"><span id="modal-snake-digest-bar"></span></div>
+        <small>Digestion <span id="modal-snake-digest-pct"></span></small>
+        <p id="modal-snake-stalled" class="warn-text" hidden>⚠ Digestion stalled — review thermal</p>
+        <div class="modal-cameras compact">
+          <figure><img id="modal-snake-rgb" alt="" /></figure>
+          <figure><img id="modal-snake-thermal" alt="" /></figure>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="modal-open-enclosure" data-id="">Open enclosure</button>
+        <button type="button" class="btn-sm primary" data-screen="digestion">Full digestion timeline</button>
+      </div>
+    </div>
+
+    <div class="modal-panel" id="modal-alert">
+      <button type="button" class="modal-close" aria-label="Close">×</button>
+      <p><span id="modal-alert-level" class="status-pill"></span></p>
+      <h3 id="modal-alert-title"></h3>
+      <p id="modal-alert-detail"></p>
+      <p class="meta" id="modal-alert-time"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm primary" id="modal-ack-btn" data-id="">Acknowledge alert</button>
+        <button type="button" class="btn-sm" id="modal-alert-goto-enclosure" data-id="" hidden>Go to enclosure</button>
+        <button type="button" class="btn-sm" id="modal-alert-goto-snake" data-id="" hidden>Go to snake</button>
+      </div>
+    </div>
+
+    <div class="modal-panel modal-panel-wide" id="modal-activity">
+      <button type="button" class="modal-close" aria-label="Close">×</button>
+      <h3>Facility activity log</h3>
+      <p class="modal-meta">System events, keeper actions &amp; clinical updates</p>
+      <div class="activity-log-list" id="modal-activity-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm primary" id="modal-activity-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <div class="enc-fs-overlay" id="enc-fs-overlay" aria-hidden="true">
+    <button type="button" class="enc-fs-close" id="enc-fs-close" aria-label="Close">×</button>
+    <img id="enc-fs-image" alt="Fullscreen camera" />
+  </div>
+
+  <script src="data.js"></script>
+  <script src="enclosure-detail.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch((err) => {
+          console.error("Service worker registration failed:", err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
