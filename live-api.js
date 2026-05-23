@@ -19,7 +19,20 @@
   }
 
   const HORSE_TEMP = { min: 37.2, max: 38.6 };
-  const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+  const istDateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const istTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 
   const store = {
     client: null,
@@ -97,17 +110,9 @@
     const raw = String(session?.started_at ?? session?.created_at ?? "").trim();
     if (!raw) return null;
     try {
-      const normalized = raw.replace("Z", "+00:00");
-      const parsed = new Date(normalized);
+      const parsed = new Date(raw.replace("Z", "+00:00"));
       if (Number.isNaN(parsed.getTime())) return null;
-      const ist = new Date(parsed.getTime() + IST_OFFSET_MS);
-      const utc = new Date(parsed.toISOString());
-      const use = raw.includes("Z") || raw.includes("+") ? parsed : utc;
-      const istDate = new Date(use.getTime() + (use.getTimezoneOffset() * 60000) + IST_OFFSET_MS);
-      const y = istDate.getUTCFullYear();
-      const m = String(istDate.getUTCMonth() + 1).padStart(2, "0");
-      const d = String(istDate.getUTCDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
+      return istDateFormatter.format(parsed);
     } catch {
       return null;
     }
@@ -119,10 +124,9 @@
     try {
       const parsed = new Date(raw.replace("Z", "+00:00"));
       if (Number.isNaN(parsed.getTime())) return "";
-      const ist = new Date(parsed.getTime() + IST_OFFSET_MS - parsed.getTimezoneOffset() * 60000);
-      return ist.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+      return istTimeFormatter.format(parsed);
     } catch {
-      return raw.slice(11, 16);
+      return "";
     }
   }
 
