@@ -15,6 +15,32 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="login-screen" class="login-screen" aria-labelledby="login-title">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="assets/logo-vetinstant.png" alt="VetInstant" width="48" height="48" />
+        <div>
+          <h1 id="login-title">VetInstant</h1>
+          <p>Horse Health Intelligence · Device sign-in</p>
+        </div>
+      </div>
+      <form id="login-form" class="login-form" autocomplete="on">
+        <label class="login-field">
+          <span>Device ID</span>
+          <input type="text" id="login-device" value="ARMY" readonly aria-readonly="true" />
+        </label>
+        <label class="login-field">
+          <span>Password</span>
+          <input type="password" id="login-password" required autocomplete="current-password" placeholder="Device password" />
+        </label>
+        <p class="login-error" id="login-error" hidden></p>
+        <button type="submit" class="primary login-submit" id="login-submit">Sign in to dashboard</button>
+      </form>
+      <p class="login-foot">ARMY device only · horses &amp; stable records</p>
+    </div>
+  </div>
+
+  <div id="app-root" class="app-root" hidden>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
@@ -60,7 +86,9 @@
             <option value="cattle">Cattle</option>
             <option value="horse">Horse</option>
           </select>
+          <span id="species-locked-label" class="species-locked" hidden>Horse · ARMY</span>
           <button class="primary header-action" id="add-cattle-button" type="button">Add New Cattle</button>
+          <button type="button" class="ghost header-action logout-btn" id="logout-btn" hidden>Sign out</button>
           <span><img src="assets/icons/bell.svg" alt="" /></span>
           <span><img src="assets/icons/user.svg" alt="" /></span>
           <span><img src="assets/icons/menu.svg" alt="" /></span>
@@ -868,8 +896,10 @@
       </form>
     </div>
   </div>
+  </div>
   <script src="config.api.js"></script>
   <script src="api-client.js"></script>
+  <script src="auth.js"></script>
   <script src="api-adapter.js"></script>
   <script src="live-api.js"></script>
   <script>
@@ -1990,6 +2020,7 @@
     });
 
     speciesSelect?.addEventListener("change", () => {
+      if (document.body.classList.contains("device-army")) return;
       applySpeciesConfig(speciesSelect.value);
       applyHerdFilter("all");
       applyQueueFilter({});
@@ -2049,7 +2080,9 @@
     }
 
     initDailyReportCollapsibles();
-    applySpeciesConfig(speciesSelect?.value || "cattle");
+    if (!window.VetAuth?.isLoggedIn()) {
+      applySpeciesConfig(speciesSelect?.value || "cattle");
+    }
     document.querySelectorAll(".clickable-cattle").forEach(bindClickableCattleRow);
 
     modalTabs.forEach((tab) => {
@@ -2132,6 +2165,12 @@
         closeAddCattleModal();
       }
     });
+
+    window.applySpeciesConfig = applySpeciesConfig;
+    window.dispatchEvent(new Event("dashboard:ready"));
+    if (window.VetAuth?.isLoggedIn()) {
+      window.VetAuth.onDashboardReady();
+    }
   </script>
 </body>
 </html>

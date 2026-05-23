@@ -28,6 +28,7 @@
   }
 
   function getSpecies() {
+    if (document.body.classList.contains("device-army")) return "horse";
     const sel = $("species-select");
     return sel?.value === "horse" ? "horse" : "cattle";
   }
@@ -98,19 +99,14 @@
   }
 
   async function ensureClient() {
-    if (!global.API_CONFIG?.baseUrl) throw new Error("Missing config.api.js (baseUrl).");
-    let password = (global.API_CONFIG.password || "").trim();
-    if (!password) {
-      password = (sessionStorage.getItem("vet_device_password") || "").trim();
-    }
-    if (!password) {
-      password = (prompt("Device password (same as desktop app):") || "").trim();
-      if (password) sessionStorage.setItem("vet_device_password", password);
-    }
-    if (!password) throw new Error("Device password required for API login.");
+    if (store.client) return store.client;
 
-    const client = new global.VetApiClient(global.API_CONFIG);
-    await client.login(global.API_CONFIG.deviceId, password);
+    const session = global.VetAuth?.getSession?.();
+    if (!session) throw new Error("Not signed in. Use ARMY login.");
+
+    const cfg = { ...global.API_CONFIG, deviceId: session.deviceId || "ARMY" };
+    const client = new global.VetApiClient(cfg);
+    await client.login(session.deviceId, session.password);
     store.client = client;
     return client;
   }

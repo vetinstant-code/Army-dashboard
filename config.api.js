@@ -4,7 +4,7 @@
  */
 window.API_CONFIG = {
   baseUrl: "https://wick-vehicular-dingy.ngrok-free.dev",
-  deviceId: "Bruno",
+  deviceId: "ARMY",
   password: "",
   timeoutMs: 25000,
 };
