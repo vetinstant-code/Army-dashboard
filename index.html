@@ -2096,7 +2096,7 @@
 
     initDailyReportCollapsibles();
     if (!window.VetAuth?.isLoggedIn()) {
-      applySpeciesConfig(speciesSelect?.value || "cattle");
+      window.VetAuth?.showLogin?.();
     }
     document.querySelectorAll(".clickable-cattle").forEach(bindClickableCattleRow);
 
@@ -2186,6 +2186,8 @@
     if (window.VetAuth?.isLoggedIn()) {
       window.VetAuth.applyHorseOnlyMode(false);
       window.VetLiveApi?.bootstrapIfLoggedIn?.();
+    } else {
+      window.VetAuth?.showLogin?.();
     }
   </script>
 </body>

@@ -562,6 +562,14 @@
     loadAllPets();
   }
 
+  function resetStore() {
+    store.client = null;
+    store.pets = [];
+    store.loading = false;
+    store.error = null;
+    store.selectedDate = null;
+  }
+
   global.VetLiveApi = {
     loadAllPets,
     store,
@@ -571,6 +579,7 @@
     setHorseKpiLabels,
     setTotalHorseCount,
     bootstrapIfLoggedIn,
+    resetStore,
   };
 
   document.addEventListener("DOMContentLoaded", () => {

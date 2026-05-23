@@ -40,7 +40,21 @@
   function showLogin(errMsg) {
     $("login-screen")?.removeAttribute("hidden");
     $("app-root")?.setAttribute("hidden", "");
+    $("logout-btn")?.setAttribute("hidden", "");
     document.body.classList.remove("device-army", "species-horse-only");
+    document.title = "VetInstant — Sign in";
+
+    const sel = $("species-select");
+    if (sel) {
+      sel.hidden = false;
+      sel.removeAttribute("aria-hidden");
+    }
+    const locked = $("species-locked-label");
+    if (locked) locked.hidden = true;
+
+    const pwd = $("login-password");
+    if (pwd) pwd.value = "";
+
     const err = $("login-error");
     if (errMsg) {
       err.textContent = errMsg;
@@ -162,7 +176,11 @@
 
   function handleLogout() {
     clearSession();
-    location.reload();
+    global.__vetApiClient = null;
+    if (global.VetLiveApi?.resetStore) {
+      global.VetLiveApi.resetStore();
+    }
+    showLogin();
   }
 
   function init() {
@@ -186,12 +204,17 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
+  window.addEventListener("pageshow", () => {
+    if (!isLoggedIn()) showLogin();
+  });
+
   global.VetAuth = {
     isLoggedIn,
     getSession,
     getDeviceId: () => ALLOWED_DEVICE,
     onDashboardReady,
     applyHorseOnlyMode,
+    showLogin,
     logout: handleLogout,
   };
 })(window);
