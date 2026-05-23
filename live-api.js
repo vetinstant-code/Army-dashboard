@@ -169,6 +169,180 @@
       };
     });
     global.VetDashboardUi?.updateDashboardActionRows?.(actionRows);
+    renderWardDiseaseDistribution();
+    renderWardDailyReport();
+  }
+
+  function wardDiseaseKey(label) {
+    return String(label || "")
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  function buildWardDiseaseDistribution() {
+    const counts = new Map();
+    for (const row of WARD_REGISTER_MAY_2026) {
+      counts.set(row.disease, (counts.get(row.disease) || 0) + 1);
+    }
+    const total = WARD_REGISTER_MAY_2026.length;
+    const palette = [
+      { color: "#e24646", dot: "mast" },
+      { color: "#f0a11e", dot: "fmd" },
+      { color: "#2f9d59", dot: "hs" },
+      { color: "#4b6bc8", dot: "bq" },
+      { color: "#28a7a0", dot: "tick" },
+      { color: "#8f5ad7", dot: "lsd" },
+    ];
+    const rows = Array.from(counts.entries()).map(([label, count], i) => ({
+      key: wardDiseaseKey(label),
+      label,
+      count,
+      percent: Math.round((count / total) * 100),
+      color: palette[i % palette.length].color,
+      dot: palette[i % palette.length].dot,
+    }));
+    const sum = rows.reduce((s, r) => s + r.percent, 0);
+    if (rows.length && sum !== 100) rows[rows.length - 1].percent += 100 - sum;
+    return { totalCases: total, rows };
+  }
+
+  function renderWardDiseaseDistribution() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    global.VetDashboardUi?.updateDiseaseDistribution?.(buildWardDiseaseDistribution());
+  }
+
+  function buildWardDailyReport() {
+    const dateIso = getSelectedDate();
+    const dateLabel = formatDisplayDate(dateIso);
+    const times = ["07:55", "08:20", "09:10", "10:02", "11:15", "14:00"];
+    const vitals = [];
+    const treatments = [];
+    const checkups = [];
+
+    WARD_REGISTER_MAY_2026.forEach((ward, i) => {
+      const pet = findPetForWardRow(ward);
+      const regt = String(ward.regt).trim();
+      const name = horseDisplayName(ward, pet);
+      const label = name !== "—" ? `Horse ${regt} · ${name}` : `Horse ${regt}`;
+      const time = times[i] || "12:00";
+
+      let vitalDetail;
+      let vitalTag = "Complete";
+      let vitalClass = "done";
+      if (pet?._takenOnDate && pet._latestTempC != null) {
+        vitalDetail = `Temp ${formatTemp(pet._latestTempC)} · ${ward.disease}`;
+      } else if (ward.active) {
+        vitalDetail = `${ward.disease} — monitor vitals · ward active`;
+        vitalTag = "Flagged";
+        vitalClass = "flagged";
+      } else {
+        vitalDetail = `${ward.disease} — discharged ${ward.discharge || "—"}`;
+        vitalTag = "Logged";
+        vitalClass = "";
+      }
+      vitals.push({
+        id: regt,
+        label,
+        time,
+        detail: vitalDetail,
+        staff: "Ravi K.",
+        tag: vitalTag,
+        tagClass: vitalClass,
+      });
+
+      treatments.push({
+        id: regt,
+        label,
+        time: ["08:50", "09:40", "10:30", "11:00", "11:20", "14:30"][i] || "13:00",
+        detail: ward.active
+          ? `${ward.disease} — treatment protocol in progress (ward)`
+          : `${ward.disease} — discharge care completed`,
+        staff: "Dr. Nair",
+        tag: ward.active ? "Active" : "Done",
+        tagClass: ward.active ? "active" : "done",
+      });
+
+      checkups.push({
+        id: regt,
+        label,
+        time: ["08:05", "09:25", "10:15", "11:00", "11:30", "13:00"][i] || "12:30",
+        detail: `Ward checkup — ${ward.disease} (${ward.active ? "active" : "discharged"})`,
+        staff: "Dr. Nair",
+        tag: "Completed",
+        tagClass: "done",
+      });
+    });
+
+    const activeN = WARD_REGISTER_MAY_2026.filter((w) => w.active).length;
+    const dischargedN = WARD_REGISTER_MAY_2026.length - activeN;
+    const totalPets = store.pets.length || 53;
+
+    return {
+      title: "Today's Daily Report",
+      subtitle: "Stable rounds — ward register (May 2026) & device vitals",
+      dateLabel,
+      syncLabel: "Last device sync: 06:52",
+      summaryNotes: {
+        vitals: "Ward & device sessions",
+        treatments: "Dr. Nair · ward protocols",
+        checkups: "Clinical ward reviews",
+        completed: "Discharged + active tracked",
+      },
+      summary: {
+        vitals: vitals.length,
+        treatments: treatments.length,
+        checkups: checkups.length,
+        completed: dischargedN + activeN,
+      },
+      vitals,
+      treatments,
+      checkups,
+      other: [
+        {
+          id: "—",
+          label: "Ward register May 2026",
+          time: "07:15",
+          detail: `${countWardSickHorses()} horses on ward · ${activeN} active (Tejas — Dermatitis)`,
+          staff: "Supervisor",
+          tag: "Log",
+          tagClass: "",
+        },
+        {
+          id: "—",
+          label: "Stable round · ARMY",
+          time: "06:52",
+          detail: `${totalPets} horses registered · morning device round`,
+          staff: "External",
+          tag: "Planned",
+          tagClass: "pending",
+        },
+      ],
+    };
+  }
+
+  function renderWardDailyReport() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    global.VetDashboardUi?.updateDailyReport?.(buildWardDailyReport());
+  }
+
+  function applyHerdDiseaseFilter(diseaseKey, label) {
+    if (!global.VetAuth?.isLoggedIn?.()) return false;
+    renderHerdTable();
+    const body = document.querySelector("#herd-table tbody");
+    if (!body) return false;
+    const key = wardDiseaseKey(diseaseKey);
+    body.querySelectorAll("tr").forEach((row) => {
+      const isSick = (row.dataset.health || "").includes("sick");
+      const rowKey = row.dataset.wardDisease || "";
+      const visible = isSick && rowKey === key;
+      row.classList.toggle("row-hidden", !visible);
+    });
+    const chip = $("herd-filter-chip");
+    if (chip) chip.textContent = label ? `${label} — sick horses` : "Sick horses";
+    if (typeof global.setActiveScreen === "function") global.setActiveScreen("herd");
+    else document.querySelector('#sidebar-nav a[data-screen="herd"]')?.click();
+    return true;
   }
 
   function applyHerdRiskFilter(diseaseKey, label) {
@@ -226,8 +400,9 @@
       const lastCheck = ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`;
       const openId = petKey || regt;
       const riskGroup = diseaseRiskGroup(ward.disease);
+      const wardDisKey = wardDiseaseKey(ward.disease);
 
-      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}" data-risk-group="${riskGroup}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}" data-risk-group="${riskGroup}" data-ward-disease="${wardDisKey}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
         <td>${regt}</td>
         <td>${name}</td>
         <td>${breed}</td>
@@ -578,13 +753,25 @@
     });
   }
 
+  function setHorseNav() {
+    const link = document.getElementById("nav-herd-link");
+    if (!link) return;
+    link.innerHTML =
+      '<span class="nav-icon"><img src="assets/icons/horses.svg?v=2" alt="" /></span>Horses';
+  }
+
   function setHorseKpiLabels() {
+    setHorseNav();
     const totalLabel = $("kpi-total-label");
     const riskLabel = $("kpi-risk-label");
     const heatLabel = $("kpi-heat-label");
     if (totalLabel) totalLabel.textContent = "Total Horses";
     if (riskLabel) riskLabel.textContent = "Not taken";
     if (heatLabel) heatLabel.textContent = "Estrus Alerts";
+    const dailyCompleted = document.getElementById("daily-kpi-completed-note");
+    if (dailyCompleted) dailyCompleted.textContent = "Ward round tracked";
+    const dailyAnimals = document.querySelector("#daily-report-kpis .daily-kpi.completed p");
+    if (dailyAnimals) dailyAnimals.textContent = "Horses completed";
   }
 
   function setTotalHorseCount(count) {
@@ -852,6 +1039,7 @@
     onCheckupScreen,
     applyDateFilter,
     setHorseKpiLabels,
+    setHorseNav,
     setTotalHorseCount,
     bootstrapIfLoggedIn,
     resetStore,
@@ -861,6 +1049,9 @@
     applyHerdKpiFilter,
     applyHerdRiskFilter,
     renderWardRiskDashboard,
+    applyHerdDiseaseFilter,
+    renderWardDiseaseDistribution,
+    renderWardDailyReport,
   };
 
   document.addEventListener("DOMContentLoaded", () => {

@@ -2644,6 +2644,10 @@ td {
   margin-top: 4px;
 }
 
+.device-army #nav-herd-link .nav-icon img {
+  object-fit: contain;
+}
+
 .login-screen {
   min-height: 100vh;
   display: flex;

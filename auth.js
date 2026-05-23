@@ -90,6 +90,8 @@
 
     if (global.VetLiveApi?.setHorseKpiLabels) {
       global.VetLiveApi.setHorseKpiLabels();
+    } else if (global.VetLiveApi?.setHorseNav) {
+      global.VetLiveApi.setHorseNav();
     }
     if (resetKpiCounts) {
       ["kpi-total-count", "kpi-healthy-count", "kpi-risk-count", "kpi-sick-count"].forEach((id) => {

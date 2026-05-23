@@ -1434,11 +1434,8 @@
 
       const navHerd = document.getElementById("nav-herd-link");
       if (navHerd && config.navHerdLabel) {
-        const iconWrap = navHerd.querySelector(".nav-icon");
-        const iconHtml = iconWrap ? iconWrap.outerHTML : "";
-        const iconImg = navHerd.querySelector(".nav-icon img");
-        if (iconImg && config.navHerdIcon) iconImg.src = config.navHerdIcon;
-        navHerd.innerHTML = `${iconHtml}${config.navHerdLabel}`;
+        const iconSrc = config.navHerdIcon || "assets/icons/horses.svg";
+        navHerd.innerHTML = `<span class="nav-icon"><img src="${iconSrc}?v=2" alt="" /></span>${config.navHerdLabel}`;
       }
 
       const actionTitle = document.getElementById("dashboard-action-title");
@@ -1449,11 +1446,15 @@
       filterTitles = config.filterTitles;
       herdFilterChip.textContent = filterTitles.all;
       queueFilterLabel.textContent = `Showing: ${config.queueDefaultLabel}`;
-      updateRiskGroupCards(config.riskGroupsCards || []);
-      updateDashboardActionRows(config.dashboardActionRows || []);
-      updateDiseaseDistribution(config.diseaseDistribution || { rows: [] });
-      updateAlertQueueRows(config.alertQueueRows || []);
-      updateDailyReport(config.dailyReport || null);
+      if (document.body.classList.contains("device-army") && window.VetLiveApi?.renderWardRiskDashboard) {
+        window.VetLiveApi.renderWardRiskDashboard();
+      } else {
+        updateRiskGroupCards(config.riskGroupsCards || []);
+        updateDashboardActionRows(config.dashboardActionRows || []);
+        updateDiseaseDistribution(config.diseaseDistribution || { rows: [] });
+        updateAlertQueueRows(config.alertQueueRows || []);
+        updateDailyReport(config.dailyReport || null);
+      }
 
       const totalLabel = document.getElementById("kpi-total-label");
       const riskLabel = document.getElementById("kpi-risk-label");
@@ -1581,12 +1582,34 @@
       const totalEl = document.querySelector(".donut-center small");
       if (totalEl) totalEl.textContent = `(${distribution.totalCases || 0} cases)`;
 
-      diseaseMixFilters.forEach((item, index) => {
-        const row = distribution.rows?.[index];
-        if (!row) return;
-        item.dataset.disease = row.key;
-        item.innerHTML = `<span class="dot ${row.dot}"></span>${row.label}: <strong>${row.percent}%</strong> <small>(${row.count})</small>`;
-      });
+      const rows = distribution.rows || [];
+      const donut = document.querySelector(".disease-donut");
+      if (donut && rows.length) {
+        let acc = 0;
+        const stops = rows.map((row) => {
+          const start = acc;
+          acc += row.percent || 0;
+          return `${row.color || "#94a3b8"} ${start}% ${acc}%`;
+        });
+        donut.style.background = `conic-gradient(${stops.join(", ")})`;
+      }
+
+      const list = document.getElementById("disease-mix-filters");
+      if (list && rows.length) {
+        list.innerHTML = rows
+          .map(
+            (row) =>
+              `<li data-disease="${row.key}"><span class="dot ${row.dot}"></span>${row.label}: <strong>${row.percent}%</strong> <small>(${row.count})</small></li>`
+          )
+          .join("");
+      } else {
+        diseaseMixFilters.forEach((item, index) => {
+          const row = rows[index];
+          if (!row) return;
+          item.dataset.disease = row.key;
+          item.innerHTML = `<span class="dot ${row.dot}"></span>${row.label}: <strong>${row.percent}%</strong> <small>(${row.count})</small>`;
+        });
+      }
     }
 
     function updateAlertQueueRows(rows) {
@@ -1688,6 +1711,8 @@
     window.VetDashboardUi = {
       updateRiskGroupCards,
       updateDashboardActionRows,
+      updateDiseaseDistribution,
+      updateDailyReport,
     };
 
     function applyQueueFilter({ disease = null, priority = null, label = getCurrentSpeciesConfig().queueDefaultLabel }) {
@@ -2076,13 +2101,18 @@
       applyQueueFilter({});
     });
 
-    diseaseMixFilters.forEach((item) => {
-      item.addEventListener("click", () => {
-        setActiveScreen("dashboard");
-        applyQueueFilter({
-          disease: item.dataset.disease,
-          label: item.textContent.trim(),
-        });
+    document.getElementById("disease-mix-filters")?.addEventListener("click", (e) => {
+      const item = e.target.closest("li[data-disease]");
+      if (!item) return;
+      const label = item.textContent.trim();
+      if (document.body.classList.contains("device-army") && window.VetLiveApi?.applyHerdDiseaseFilter) {
+        window.VetLiveApi.applyHerdDiseaseFilter(item.dataset.disease, label);
+        return;
+      }
+      setActiveScreen("dashboard");
+      applyQueueFilter({
+        disease: item.dataset.disease,
+        label,
       });
     });
 
