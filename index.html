@@ -483,7 +483,6 @@
             <p class="section-subtitle" id="records-subtitle">Live device records via API</p>
           </div>
           <div class="section-head-actions">
-            <span class="chip" id="api-connection-chip">API: idle</span>
             <button type="button" class="primary header-action" id="api-refresh-btn">Refresh data</button>
           </div>
         </div>
@@ -511,19 +510,25 @@
         </article>
 
         <article class="panel health-records-panel">
-          <div class="panel-head">
-            <h3 id="health-api-title">Horses / pets from device</h3>
-            <p id="health-records-status">Loading…</p>
+          <div class="panel-head panel-head-with-date">
+            <div>
+              <h3 id="health-api-title">Horses from device</h3>
+              <p id="health-records-status">Select a date to view readings</p>
+            </div>
+            <label class="health-date-picker">
+              <span>Record date</span>
+              <input type="date" id="health-records-date" />
+            </label>
           </div>
           <div class="table-wrap">
             <table class="health-records-table" id="health-records-table">
               <thead>
                 <tr>
-                  <th>Pet ID</th>
+                  <th>RMT No.</th>
                   <th>Name</th>
                   <th>Sessions</th>
-                  <th>Latest temperature</th>
-                  <th>Vitals status</th>
+                  <th>Temperature</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>

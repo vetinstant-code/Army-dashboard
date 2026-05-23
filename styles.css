@@ -2750,7 +2750,55 @@ td {
   display: none !important;
 }
 
-.logout-btn {
-  font-size: 13px;
-  padding: 8px 12px;
+.badge.muted {
+  background: #eef2f6;
+  color: #6b8299;
+}
+
+.health-row-not-taken td {
+  opacity: 0.72;
+}
+
+.panel-head-with-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.health-date-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #5a7085;
+}
+
+.health-date-picker input {
+  padding: 8px 10px;
+  border: 1px solid #c8d6e2;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.session-date-group {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.session-date-group > ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.session-on-selected-date {
+  font-weight: 600;
+  color: #0f2237;
+}
+
+.health-view-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
