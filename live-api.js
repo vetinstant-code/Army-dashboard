@@ -18,13 +18,140 @@
     }
   }
 
+  const WARD_REGTS = new Set(
+    WARD_REGISTER_MAY_2026.map((row) => String(row.regt || "").trim()).filter(Boolean)
+  );
+
   /** Unique Regt No. in May 2026 ward register (dashboard Sick KPI). */
   function countWardSickHorses() {
-    const regts = new Set();
+    return WARD_REGTS.size;
+  }
+
+  function getWardHorsesByRegt() {
+    const byRegt = new Map();
     for (const row of WARD_REGISTER_MAY_2026) {
-      if (row.regt) regts.add(String(row.regt).trim());
+      const regt = String(row.regt || "").trim();
+      if (!regt) continue;
+      const cur = byRegt.get(regt);
+      if (!cur) byRegt.set(regt, row);
+      else if (row.active && !cur.active) byRegt.set(regt, row);
     }
-    return regts.size;
+    return Array.from(byRegt.values());
+  }
+
+  function findPetForWardRow(ward) {
+    const regt = String(ward.regt || "").trim();
+    const wardName = ward.name && ward.name !== "—" ? ward.name.toLowerCase() : "";
+    return store.pets.find((p) => {
+      if (petRmtNo(p) === regt) return true;
+      const n = petName(p).toLowerCase();
+      const d = displayName(p).toLowerCase();
+      return wardName && (n === wardName || d === wardName);
+    });
+  }
+
+  function isPetInWard(pet) {
+    const rmt = petRmtNo(pet);
+    if (rmt !== "—" && WARD_REGTS.has(rmt)) return true;
+    return !!WARD_BY_NAME[petName(pet).toLowerCase()];
+  }
+
+  function petHealthTag(pet) {
+    if (isPetInWard(pet)) return "sick";
+    if (!pet._takenOnDate) return "at-risk";
+    return "healthy";
+  }
+
+  function herdHealthBadge(health, wardRow) {
+    if (health === "sick" && wardRow) {
+      const status = wardRow.active ? "Active" : "Discharged";
+      const cls = wardRow.active ? "high" : "muted";
+      return `<span class="badge ${cls}">${wardRow.disease} · ${status}</span>`;
+    }
+    if (health === "at-risk") return '<span class="badge warn">Not taken</span>';
+    if (health === "healthy") return '<span class="badge">Healthy</span>';
+    return '<span class="badge heat">Heat</span>';
+  }
+
+  function renderHerdTable() {
+    const body = document.querySelector("#herd-table tbody");
+    if (!body || !global.VetAuth?.isLoggedIn?.()) return;
+
+    const wardRows = getWardHorsesByRegt();
+    const matchedPetIds = new Set();
+    const html = [];
+
+    for (const ward of wardRows) {
+      const pet = findPetForWardRow(ward);
+      const petKey = pet ? petId(pet) : "";
+      if (petKey) matchedPetIds.add(petKey);
+
+      const regt = String(ward.regt).trim();
+      const name = ward.name !== "—" ? ward.name : regt;
+      const breed = pet
+        ? String(pet.breed ?? pet.species ?? "—").trim() || "—"
+        : name;
+      const age = pet?.age != null ? String(pet.age) : "—";
+      const lastCheck = ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`;
+      const openId = petKey || regt;
+
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
+        <td>${regt}</td>
+        <td>${breed}</td>
+        <td>${age}${age !== "—" ? " yrs" : ""}</td>
+        <td>${lastCheck}</td>
+        <td>${herdHealthBadge("sick", ward)}</td>
+        <td><button type="button" class="mini">Open</button></td>
+      </tr>`);
+    }
+
+    for (const pet of store.pets) {
+      const id = petId(pet);
+      if (!id || matchedPetIds.has(id) || isPetInWard(pet)) continue;
+      const health = petHealthTag(pet);
+      const regt = petRmtNo(pet);
+      const label = regt !== "—" ? regt : id;
+      const breed = String(pet.breed ?? pet.species ?? displayName(pet) ?? "—").trim() || "—";
+      const age = pet.age != null ? `${pet.age} yrs` : "—";
+      const lastCheck = pet._takenOnDate
+        ? (pet._latestTempC != null ? `${formatTemp(pet._latestTempC)} · ${formatDisplayDate(getSelectedDate())}` : "Taken")
+        : "Not taken";
+
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${id}" data-health="${health}" data-pet-id="${id}">
+        <td>${label}</td>
+        <td>${breed}</td>
+        <td>${age}</td>
+        <td>${lastCheck}</td>
+        <td>${herdHealthBadge(health)}</td>
+        <td><button type="button" class="mini">Open</button></td>
+      </tr>`);
+    }
+
+    body.innerHTML = html.join("") || '<tr><td colspan="6">No horses loaded.</td></tr>';
+    bindHerdRowActions();
+  }
+
+  function bindHerdRowActions() {
+    const body = document.querySelector("#herd-table tbody");
+    if (!body || body.dataset.liveBound === "1") return;
+    body.dataset.liveBound = "1";
+    body.addEventListener("click", (e) => {
+      const row = e.target.closest("tr.herd-row-live");
+      if (!row) return;
+      const pid = row.dataset.petId;
+      if (!pid) return;
+      document.querySelector('#sidebar-nav a[data-screen="checkup"]')?.click();
+      showPetDetail(pid);
+    });
+  }
+
+  function applyHerdKpiFilter(filter, label) {
+    if (!global.VetAuth?.isLoggedIn?.()) return false;
+    renderHerdTable();
+    if (typeof global.__applyHerdFilter === "function") {
+      global.__applyHerdFilter(filter || "all", label);
+    }
+    return true;
   }
 
   const HORSE_TEMP = { min: 37.2, max: 38.6 };
@@ -528,6 +655,8 @@
     if (sub) {
       sub.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken · ${total} horses · ${wardSick} in ward register`;
     }
+
+    renderHerdTable();
   }
 
   function onCheckupScreen() {
@@ -572,6 +701,11 @@
     store.loading = false;
     store.error = null;
     store.selectedDate = null;
+    const body = document.querySelector("#herd-table tbody");
+    if (body) {
+      body.dataset.liveBound = "";
+      body.innerHTML = "";
+    }
   }
 
   global.VetLiveApi = {
@@ -586,6 +720,8 @@
     resetStore,
     countWardSickHorses,
     updateDashboardKpis,
+    renderHerdTable,
+    applyHerdKpiFilter,
   };
 
   document.addEventListener("DOMContentLoaded", () => {

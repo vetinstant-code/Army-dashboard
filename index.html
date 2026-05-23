@@ -1599,7 +1599,9 @@
         event.preventDefault();
         setActiveScreen(link.dataset.screen);
         if (link.dataset.screen === "herd") {
-          applyHerdFilter("all");
+          if (!window.VetLiveApi?.applyHerdKpiFilter?.("all")) {
+            applyHerdFilter("all");
+          }
         }
       });
     });
@@ -1657,6 +1659,8 @@
 
       herdFilterChip.textContent = label || filterTitles[activeFilter] || "All Animals";
     }
+
+    window.__applyHerdFilter = applyHerdFilter;
 
     function applyQueueFilter({ disease = null, priority = null, label = getCurrentSpeciesConfig().queueDefaultLabel }) {
       queueRows.forEach((row) => {
@@ -2009,7 +2013,10 @@
         if (herdStatusFilter) herdStatusFilter.value = "all";
         if (herdSearch) herdSearch.value = "";
         const label = card.querySelector("p")?.textContent?.trim() || null;
-        applyHerdFilter(card.dataset.filter, label);
+        const filter = card.dataset.filter;
+        if (!window.VetLiveApi?.applyHerdKpiFilter?.(filter, label)) {
+          applyHerdFilter(filter, label);
+        }
       });
     });
 
