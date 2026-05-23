@@ -1130,6 +1130,80 @@ button {
 
 .dashboard-ops-grid .disease-donut {
   margin: 0 auto;
+  width: 168px;
+  height: 168px;
+}
+
+.dashboard-ops-grid .disease-donut::after {
+  width: 100px;
+  height: 100px;
+}
+
+.dashboard-ops-grid .donut-wrap {
+  grid-template-columns: 168px 1fr;
+  gap: 10px;
+}
+
+.dashboard-ops-grid .panel-head {
+  padding: 10px 12px;
+}
+
+.dashboard-ops-grid .panel-head h3 {
+  font-size: 20px;
+}
+
+.dashboard-ops-grid .panel-head p {
+  font-size: 13px;
+}
+
+.dashboard-ops-grid .data-table th {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.dashboard-ops-grid .data-table td {
+  font-size: 13px;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.dashboard-ops-grid .data-table td .pill,
+.dashboard-ops-grid .data-table td .status-pill,
+.dashboard-ops-grid .data-table td .sev-pill,
+.dashboard-ops-grid .data-table td .risk-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.dashboard-ops-grid .donut-center strong,
+.dashboard-ops-grid .donut-center span {
+  font-size: 15px;
+}
+
+.dashboard-ops-grid .donut-center small {
+  font-size: 12px;
+}
+
+.dashboard-ops-grid .donut-labels {
+  font-size: 12px;
+  gap: 4px;
+}
+
+#dashboard-action-body tr.row-hidden {
+  display: none;
+}
+
+.donut-labels li.filter-active {
+  color: #0b3157;
+  font-weight: 700;
+  background: #e8f1fb;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: -2px -6px;
 }
 
 .panel-head {

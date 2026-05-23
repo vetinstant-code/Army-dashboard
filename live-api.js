@@ -161,11 +161,12 @@
         statusClass,
         severity: ward.active ? "Active case" : "Ward history",
         severityClass: ward.active ? "sev-critical" : "sev-medium",
-        risk: group.split(" ")[0],
+        risk: riskGroupLabel(group),
         riskClass: ward.active ? "critical" : "high",
-        lastAbnormal: ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`,
+        lastAbnormal: wardLastEventLabel(ward),
         disease: `${ward.disease.toLowerCase()} ${group}`,
         priority: group.split(" ")[0],
+        wardDisease: wardDiseaseKey(ward.disease),
       };
     });
     global.VetDashboardUi?.updateDashboardActionRows?.(actionRows);
@@ -179,6 +180,58 @@
       .toLowerCase()
       .replace(/[^\w]+/g, "-")
       .replace(/^-|-$/g, "");
+  }
+
+  function riskGroupLabel(group) {
+    const g = String(group || "").toLowerCase();
+    if (g.includes("infection")) return "Infection";
+    if (g.includes("respiratory")) return "Respiratory";
+    if (g.includes("digestive") || g.includes("colic")) return "Digestive";
+    if (g.includes("hoof") || g.includes("mobility")) return "Limb";
+    if (g.includes("heat") || g.includes("environment")) return "Environment";
+    return "Other";
+  }
+
+  function wardLastEventLabel(ward) {
+    return ward.active
+      ? `Admitted ${ward.admission}`
+      : `Discharged ${ward.discharge || "—"}`;
+  }
+
+  /** Filter dashboard “Horses Requiring Action” table (stay on dashboard). */
+  function applyWardActionFilter({ diseaseKey = null, riskGroup = null, label = null } = {}) {
+    const body = document.getElementById("dashboard-action-body");
+    if (!body) return false;
+    const key = diseaseKey ? wardDiseaseKey(diseaseKey) : null;
+    const rg = riskGroup ? String(riskGroup).trim().toLowerCase() : null;
+    const rgToken = rg ? rg.split(/\s+/)[0] : null;
+
+    body.querySelectorAll("tr").forEach((row) => {
+      if (!key && !rg) {
+        row.classList.remove("row-hidden");
+        return;
+      }
+      let visible = true;
+      if (key) visible = (row.dataset.wardDisease || "") === key;
+      if (rg && visible) {
+        const dis = (row.dataset.disease || "").toLowerCase();
+        const pri = (row.dataset.priority || "").toLowerCase();
+        visible = dis.includes(rg) || (!!rgToken && pri === rgToken);
+      }
+      row.classList.toggle("row-hidden", !visible);
+    });
+
+    const chip = document.getElementById("queue-filter-label");
+    if (chip) {
+      chip.textContent = label ? `Showing: ${label}` : "Showing: All horses requiring action";
+    }
+
+    document.querySelectorAll("#disease-mix-filters li").forEach((li) => {
+      li.classList.toggle("filter-active", !!key && li.dataset.disease === key);
+    });
+
+    if (typeof global.setActiveScreen === "function") global.setActiveScreen("dashboard");
+    return true;
   }
 
   function buildWardDiseaseDistribution() {
@@ -329,43 +382,14 @@
 
   function applyHerdDiseaseFilter(diseaseKey, label) {
     if (!global.VetAuth?.isLoggedIn?.()) return false;
-    renderHerdTable();
-    const body = document.querySelector("#herd-table tbody");
-    if (!body) return false;
-    const key = wardDiseaseKey(diseaseKey);
-    body.querySelectorAll("tr").forEach((row) => {
-      const isSick = (row.dataset.health || "").includes("sick");
-      const rowKey = row.dataset.wardDisease || "";
-      const visible = isSick && rowKey === key;
-      row.classList.toggle("row-hidden", !visible);
-    });
-    const chip = $("herd-filter-chip");
-    if (chip) chip.textContent = label ? `${label} — sick horses` : "Sick horses";
-    if (typeof global.setActiveScreen === "function") global.setActiveScreen("herd");
-    else document.querySelector('#sidebar-nav a[data-screen="herd"]')?.click();
-    return true;
+    const clean = (label || diseaseKey || "").replace(/\s*:\s*[\d.]+%.*$/i, "").trim();
+    return applyWardActionFilter({ diseaseKey, label: clean || diseaseKey });
   }
 
   function applyHerdRiskFilter(diseaseKey, label) {
     if (!global.VetAuth?.isLoggedIn?.()) return false;
-    renderHerdTable();
-    const body = document.querySelector("#herd-table tbody");
-    if (!body) return false;
-    const key = (diseaseKey || "").trim().toLowerCase();
-    body.querySelectorAll("tr").forEach((row) => {
-      const rg = (row.dataset.riskGroup || "").toLowerCase();
-      const isSick = (row.dataset.health || "").includes("sick");
-      const visible = isSick && (!key || rg === key);
-      row.classList.toggle("row-hidden", !visible);
-    });
-    const chip = $("herd-filter-chip");
-    if (chip) chip.textContent = label ? `${label} — ward horses` : "Sick horses";
-    if (typeof global.setActiveScreen === "function") {
-      global.setActiveScreen("herd");
-    } else {
-      document.querySelector('#sidebar-nav a[data-screen="herd"]')?.click();
-    }
-    return true;
+    const clean = (label || diseaseKey || "").trim();
+    return applyWardActionFilter({ riskGroup: diseaseKey, label: clean || diseaseKey });
   }
 
   function herdHealthBadge(health, wardRow) {
@@ -398,7 +422,7 @@
         ? String(pet.breed ?? pet.species ?? "—").trim() || "—"
         : "—";
       const age = pet?.age != null ? String(pet.age) : "—";
-      const lastCheck = ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`;
+      const lastCheck = wardLastEventLabel(ward);
       const openId = petKey || regt;
       const riskGroup = diseaseRiskGroup(ward.disease);
       const wardDisKey = wardDiseaseKey(ward.disease);
@@ -726,6 +750,12 @@
     if (dailyCompleted) dailyCompleted.textContent = "Ward round tracked";
     const dailyAnimals = document.querySelector("#daily-report-kpis .daily-kpi.completed p");
     if (dailyAnimals) dailyAnimals.textContent = "Horses completed";
+    const categoryHead = document.querySelector(".dashboard-ops-grid .data-table thead th:nth-child(6)");
+    if (categoryHead) categoryHead.textContent = "Category";
+    const diseaseSub = document.querySelector(".disease-graph-panel .panel-head p");
+    if (diseaseSub) diseaseSub.textContent = "Ward cases by condition — click to filter list";
+    const riskNote = document.getElementById("risk-groups-queue-note");
+    if (riskNote) riskNote.textContent = "Click a category to filter the action list";
   }
 
   function setTotalHorseCount(count) {
@@ -1039,6 +1069,7 @@
     applyHerdRiskFilter,
     renderWardRiskDashboard,
     applyHerdDiseaseFilter,
+    applyWardActionFilter,
     renderWardDiseaseDistribution,
     renderWardDailyReport,
     openHorseDetail,

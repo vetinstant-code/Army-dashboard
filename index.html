@@ -1524,7 +1524,7 @@
 
     function updateDashboardActionRows(rows) {
       dashboardActionBody.innerHTML = rows.map((row) => `
-        <tr class="clickable-cattle" data-cow-id="${row.id}" data-disease="${row.disease}" data-priority="${row.priority}">
+        <tr class="clickable-cattle" data-cow-id="${row.id}" data-disease="${row.disease}" data-priority="${row.priority}"${row.wardDisease ? ` data-ward-disease="${row.wardDisease}"` : ""}>
           <td>${row.id}</td>
           <td>${row.name || row.breed || "—"}</td>
           <td><span class="pill ${row.alertClass}">${row.alert}</span></td>
@@ -2138,6 +2138,7 @@
       if (!item) return;
       const label = item.textContent.trim();
       if (document.body.classList.contains("device-army") && window.VetLiveApi?.applyHerdDiseaseFilter) {
+        e.preventDefault();
         window.VetLiveApi.applyHerdDiseaseFilter(item.dataset.disease, label);
         return;
       }
@@ -2149,9 +2150,10 @@
     });
 
     actionSummaryFilters.forEach((card) => {
-      card.addEventListener("click", () => {
+      card.addEventListener("click", (e) => {
         const label = card.querySelector("h4")?.textContent?.trim() || "Priority filter";
         if (document.body.classList.contains("device-army") && window.VetLiveApi?.applyHerdRiskFilter) {
+          e.preventDefault();
           window.VetLiveApi.applyHerdRiskFilter(card.dataset.disease, label);
           return;
         }
