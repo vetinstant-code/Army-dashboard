@@ -74,6 +74,14 @@
       global.API_CONFIG.deviceId = ALLOWED_DEVICE;
     }
 
+    if (global.VetLiveApi?.setHorseKpiLabels) {
+      global.VetLiveApi.setHorseKpiLabels();
+    }
+    ["kpi-total-count", "kpi-healthy-count", "kpi-risk-count", "kpi-sick-count"].forEach((id) => {
+      const el = $(id);
+      if (el) el.textContent = "—";
+    });
+
     if (typeof global.applySpeciesConfig === "function") {
       global.applySpeciesConfig("horse");
     }

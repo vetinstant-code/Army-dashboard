@@ -97,30 +97,30 @@
 
       <section class="screen active" id="dashboard">
         <div class="kpi-strip">
-          <article class="kpi-item total" data-filter="all" title="Open all animals">
-            <p><span class="kpi-icon"><img src="assets/icons/kpi-total.svg" alt="" /></span>Total Animals</p>
-            <h4>120</h4>
+          <article class="kpi-item total" data-filter="all" title="Open all horses">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-total.svg" alt="" /></span><span id="kpi-total-label">Total Animals</span></p>
+            <h4 id="kpi-total-count">—</h4>
           </article>
-          <article class="kpi-item healthy" data-filter="healthy" title="Open healthy animals">
+          <article class="kpi-item healthy" data-filter="healthy" title="Healthy on date">
             <p><span class="kpi-icon"><img src="assets/icons/kpi-healthy.svg" alt="" /></span>Healthy</p>
-            <h4 class="good">95</h4>
+            <h4 class="good" id="kpi-healthy-count">—</h4>
           </article>
-          <article class="kpi-item risk" data-filter="at-risk" title="Open at-risk animals">
-            <p><span class="kpi-icon"><img src="assets/icons/kpi-risk.svg" alt="" /></span>At Risk</p>
-            <h4 class="warn">27</h4>
+          <article class="kpi-item risk" data-filter="at-risk" title="Not taken on selected date">
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-risk.svg" alt="" /></span><span id="kpi-risk-label">Not taken</span></p>
+            <h4 class="warn" id="kpi-risk-count">—</h4>
           </article>
-          <article class="kpi-item sick" data-filter="sick" title="Open sick animals">
+          <article class="kpi-item sick" data-filter="sick" title="Sick on selected date">
             <p><span class="kpi-icon"><img src="assets/icons/kpi-sick.svg" alt="" /></span>Sick</p>
-            <h4 class="danger">8</h4>
+            <h4 class="danger" id="kpi-sick-count">—</h4>
           </article>
           <article class="kpi-item small heat" data-filter="heat" title="Open estrous alerts">
-            <p><span class="kpi-icon"><img src="assets/icons/kpi-estrous.svg" alt="" /></span>Estrous Alerts</p>
-            <h4>24</h4>
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-estrous.svg" alt="" /></span><span id="kpi-heat-label">Estrous Alerts</span></p>
+            <h4 id="kpi-heat-count">—</h4>
             <small>Heat detection</small>
           </article>
           <article class="kpi-item small vaccination">
-            <p><span class="kpi-icon"><img src="assets/icons/kpi-vaccination.svg" alt="" /></span>Vaccinations (FMD-CP)</p>
-            <h4>98%</h4>
+            <p><span class="kpi-icon"><img src="assets/icons/kpi-vaccination.svg" alt="" /></span>Vaccinations</p>
+            <h4 id="kpi-vaccination-count">—</h4>
             <small>Coverage</small>
           </article>
         </div>
@@ -480,7 +480,7 @@
         <div class="section-head">
           <div class="section-title-stack">
             <h3 id="records-title">Herd Health Records</h3>
-            <p class="section-subtitle" id="records-subtitle">Live device records via API</p>
+            <p class="section-subtitle" id="records-subtitle">Stable health records</p>
           </div>
           <div class="section-head-actions">
             <button type="button" class="primary header-action" id="api-refresh-btn">Refresh data</button>
@@ -1432,6 +1432,17 @@
       updateDiseaseDistribution(config.diseaseDistribution || { rows: [] });
       updateAlertQueueRows(config.alertQueueRows || []);
       updateDailyReport(config.dailyReport || null);
+
+      const totalLabel = document.getElementById("kpi-total-label");
+      const riskLabel = document.getElementById("kpi-risk-label");
+      const heatLabel = document.getElementById("kpi-heat-label");
+      if (totalLabel) totalLabel.textContent = species === "horse" ? "Total Horses" : "Total Animals";
+      if (riskLabel) riskLabel.textContent = species === "horse" ? "Not taken" : "At Risk";
+      if (heatLabel) heatLabel.textContent = species === "horse" ? "Estrus Alerts" : "Estrous Alerts";
+
+      if (document.body.classList.contains("device-army") && window.VetLiveApi?.setHorseKpiLabels) {
+        window.VetLiveApi.setHorseKpiLabels();
+      }
 
       if (activeAnimalDetail && cattleModal.classList.contains("open")) {
         openCattleModal(activeAnimalDetail.id);

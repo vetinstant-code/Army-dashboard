@@ -306,23 +306,70 @@
     });
   }
 
+  function setHorseKpiLabels() {
+    const totalLabel = $("kpi-total-label");
+    const riskLabel = $("kpi-risk-label");
+    const heatLabel = $("kpi-heat-label");
+    if (totalLabel) totalLabel.textContent = "Total Horses";
+    if (riskLabel) riskLabel.textContent = "Not taken";
+    if (heatLabel) heatLabel.textContent = "Estrus Alerts";
+  }
+
+  function setTotalHorseCount(count) {
+    const el = $("kpi-total-count");
+    if (el) el.textContent = String(count);
+    setHorseKpiLabels();
+  }
+
   function renderTempGrid(readings, gridEl) {
     const grid = gridEl || $("health-detail-temps");
     if (!grid) return;
     if (!readings?.length) {
-      grid.innerHTML = "<p>No temperature readings for this session.</p>";
+      grid.innerHTML = "<p class=\"health-temp-empty\">No temperature readings for this session.</p>";
       return;
     }
-    grid.innerHTML = readings
-      .map((r) => {
-        const sensor = r.sensor_type || r.type || "reading";
-        const num = r.reading_number != null ? `#${r.reading_number}` : "";
-        return `<article class="health-temp-card">
-          <p>${sensor} ${num}</p>
-          <strong>${formatTemp(r.temperature_value)}</strong>
-        </article>`;
-      })
-      .join("");
+
+    const irItems = readings.filter((r) => /ir|ear/i.test(String(r.sensor_type || r.type || "")));
+    const refItems = readings.filter((r) =>
+      /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
+    );
+    const otherItems = readings.filter((r) => {
+      const s = String(r.sensor_type || r.type || "");
+      return !/ir|ear/i.test(s) && !/reference|thermometer/i.test(s);
+    });
+
+    let html = "";
+    if (irItems.length) {
+      html += `<section class="health-temp-section">
+        <h4 class="health-temp-section-title">Infrared (ear)</h4>
+        <div class="health-temp-grid-inner">${irItems.map(renderTempCard).join("")}</div>
+      </section>`;
+    }
+    if (refItems.length) {
+      html += `<section class="health-temp-section">
+        <h4 class="health-temp-section-title">Reference thermometer</h4>
+        <div class="health-temp-grid-inner">${refItems.map(renderTempCard).join("")}</div>
+      </section>`;
+    }
+    if (otherItems.length) {
+      html += `<section class="health-temp-section">
+        <h4 class="health-temp-section-title">Other readings</h4>
+        <div class="health-temp-grid-inner">${otherItems.map(renderTempCard).join("")}</div>
+      </section>`;
+    }
+
+    grid.innerHTML = html || "<p class=\"health-temp-empty\">No readings</p>";
+  }
+
+  function renderTempCard(r) {
+    const sensor = String(r.sensor_type || r.type || "reading").replace(/_/g, " ");
+    const num = r.reading_number != null ? `#${r.reading_number}` : "";
+    const val = Number(r.temperature_value);
+    const level = val > 38.6 ? "high" : val > 0 && val < 37.2 ? "low" : "ok";
+    return `<article class="health-temp-card health-temp-${level}">
+      <span class="health-temp-card-label">${sensor} ${num}</span>
+      <strong>${formatTemp(r.temperature_value)}</strong>
+    </article>`;
   }
 
   async function loadSessionTemperatures(pet, session) {
@@ -384,14 +431,15 @@
     }
 
     if (picker) {
-      picker.innerHTML = sessionsOnDate
+      picker.innerHTML = `<div class="health-session-picker-inner">${sessionsOnDate
         .map((session, i) => {
           const time = sessionTimeIst(session);
           return `<button type="button" class="health-session-btn${i === 0 ? " active" : ""}" role="tab" aria-selected="${i === 0 ? "true" : "false"}" data-session-index="${i}">
-            Session ${i + 1}${time ? `<small>${time}</small>` : ""}
+            <span class="health-session-num">Session ${i + 1}</span>
+            ${time ? `<span class="health-session-time">${time}</span>` : ""}
           </button>`;
         })
-        .join("");
+        .join("")}</div>`;
 
       picker.querySelectorAll(".health-session-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -427,6 +475,7 @@
       const client = await ensureClient();
       const raw = await client.listPets();
       store.pets = global.VetApiNormalize.normalizePets(raw).map((p) => ({ ...p }));
+      setTotalHorseCount(store.pets.length);
       await applyDateFilter(getSelectedDate());
     } catch (e) {
       store.error = e.message || String(e);
@@ -439,11 +488,15 @@
 
   function updateDashboardKpis() {
     if (!store.pets.length) return;
+
     const total = store.pets.length;
-    let taken = 0;
+    setTotalHorseCount(total);
+
     let healthy = 0;
     let notTaken = 0;
     let sick = 0;
+    let taken = 0;
+
     for (const p of store.pets) {
       if (!p._takenOnDate) {
         notTaken++;
@@ -454,14 +507,19 @@
       if (vs.label === "Critical" || vs.label === "Elevated") sick++;
       else if (vs.label === "Stable") healthy++;
     }
-    const kpiTotal = document.querySelector(".kpi-item.total h4");
-    const kpiHealthy = document.querySelector(".kpi-item.healthy h4");
-    const kpiRisk = document.querySelector(".kpi-item.risk h4");
-    const kpiSick = document.querySelector(".kpi-item.sick h4");
-    if (kpiTotal) kpiTotal.textContent = String(total);
-    if (kpiHealthy) kpiHealthy.textContent = String(healthy);
-    if (kpiRisk) kpiRisk.textContent = String(notTaken);
-    if (kpiSick) kpiSick.textContent = String(sick);
+
+    const elHealthy = $("kpi-healthy-count");
+    const elRisk = $("kpi-risk-count");
+    const elSick = $("kpi-sick-count");
+    if (elHealthy) elHealthy.textContent = String(healthy);
+    if (elRisk) elRisk.textContent = String(notTaken);
+    if (elSick) elSick.textContent = String(sick);
+
+    const dateIso = getSelectedDate();
+    const sub = $("health-records-status");
+    if (sub) {
+      sub.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken · ${total} horses registered`;
+    }
   }
 
   function onCheckupScreen() {
@@ -494,6 +552,14 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindUi();
-    global.VetLiveApi = { loadAllPets, store, showPetDetail, onCheckupScreen, applyDateFilter };
+    global.VetLiveApi = {
+      loadAllPets,
+      store,
+      showPetDetail,
+      onCheckupScreen,
+      applyDateFilter,
+      setHorseKpiLabels,
+      setTotalHorseCount,
+    };
   });
 })(window);
