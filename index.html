@@ -1911,7 +1911,11 @@
             }
           });
           tip.style.display = "block";
-          tip.textContent = `${dayLabels[idx]}: ${data[idx]}${opts.suffix || ""}`;
+          const val =
+            opts.suffix === "°C" && window.VetLiveApi?.roundTempC
+              ? window.VetLiveApi.roundTempC(data[idx])
+              : data[idx];
+          tip.textContent = `${dayLabels[idx]}: ${val}${opts.suffix || ""}`;
           tip.style.left = `${xAt(idx)}px`;
           tip.style.top = `${yAt(data[idx]) - 28}px`;
         };
@@ -2029,7 +2033,12 @@
       statusEl.className = `animal-status-pill ${details.statusClass || ""}`.trim();
 
       document.getElementById("modal-activity-label").textContent = norms.activityLabel;
-      document.getElementById("modal-vital-temp").textContent = p.temp != null ? `${p.temp}°C` : "—";
+      document.getElementById("modal-vital-temp").textContent =
+        p.temp != null
+          ? window.VetLiveApi?.formatTemp
+            ? window.VetLiveApi.formatTemp(p.temp)
+            : `${p.temp}°C`
+          : "—";
       document.getElementById("modal-vital-hr").textContent = p.hr != null ? String(p.hr) : "—";
       document.getElementById("modal-vital-spo2").textContent = p.spo2 != null ? String(p.spo2) : "—";
       document.getElementById("modal-vital-resp").textContent = p.resp != null ? String(p.resp) : "—";

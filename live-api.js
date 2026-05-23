@@ -591,10 +591,17 @@
     return sessionsOnDate.map((_, i) => i + 1).join(" ");
   }
 
-  function formatTemp(c) {
+  /** Same as device firmware: trunc(c * 10 + 0.5) → one decimal °C. */
+  function roundTempC(c) {
     const n = Number(c);
-    if (!Number.isFinite(n) || n <= 0) return "—";
-    return `${n.toFixed(1)}°C`;
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.trunc(n * 10 + 0.5) / 10;
+  }
+
+  function formatTemp(c) {
+    const rounded = roundTempC(c);
+    if (rounded == null) return "—";
+    return `${rounded.toFixed(1)}°C`;
   }
 
   function latestRefTemp(readings) {
@@ -602,9 +609,9 @@
       String(r.sensor_type || r.type || "").toLowerCase().includes("reference")
     );
     const vals = refs.map((r) => Number(r.temperature_value)).filter((n) => Number.isFinite(n) && n > 0);
-    if (vals.length) return vals[vals.length - 1];
+    if (vals.length) return roundTempC(vals[vals.length - 1]);
     const any = readings.map((r) => Number(r.temperature_value)).filter((n) => Number.isFinite(n) && n > 0);
-    return any.length ? any[any.length - 1] : null;
+    return any.length ? roundTempC(any[any.length - 1]) : null;
   }
 
   function vitalsStatus(celsius, taken) {
@@ -753,7 +760,7 @@
 
   async function getLastTakenTemperature(pet) {
     if (pet._latestTempC != null && Number(pet._latestTempC) > 0) {
-      return Number(pet._latestTempC);
+      return roundTempC(pet._latestTempC);
     }
     await ensureClient();
     await loadSessionsForPet(pet);
@@ -772,11 +779,11 @@
       const irMax = maxTempFromReadings(readings, (r) =>
         /ir|ear/i.test(String(r.sensor_type || r.type || ""))
       );
-      if (irMax != null) return irMax;
+      if (irMax != null) return roundTempC(irMax);
       const refMax = maxTempFromReadings(readings, (r) =>
         /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
       );
-      if (refMax != null) return refMax;
+      if (refMax != null) return roundTempC(refMax);
     }
     return null;
   }
@@ -817,7 +824,7 @@
       if (!vals.length) continue;
       const [, m, d] = iso.split("-");
       chartLabels.push(`${d}/${m}`);
-      tempTrend.push(Math.round(Math.max(...vals) * 10) / 10);
+      tempTrend.push(roundTempC(Math.max(...vals)));
     }
 
     return { chartLabels, tempTrend };
@@ -885,7 +892,7 @@
         w ? `Ward: ${w.disease}` : "",
       ].filter(Boolean),
       parsed: {
-        temp: lastTemp != null ? Number(lastTemp) : null,
+        temp: lastTemp != null ? roundTempC(lastTemp) : null,
         hr: null,
         spo2: null,
         resp: null,
@@ -1036,6 +1043,8 @@
     renderWardDailyReport,
     openHorseDetail,
     updateHealthRecordsSummary,
+    roundTempC,
+    formatTemp,
   };
 
   document.addEventListener("DOMContentLoaded", () => {
