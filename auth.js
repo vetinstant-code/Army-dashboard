@@ -90,7 +90,7 @@
   }
 
   function onDashboardReady() {
-    applyHorseOnlyMode();
+    applyHorseOnlyMode(false);
     if (global.VetLiveApi?.bootstrapIfLoggedIn) {
       global.VetLiveApi.bootstrapIfLoggedIn();
     } else if (global.VetLiveApi?.loadAllPets) {
@@ -136,7 +136,7 @@
       global.__vetApiClient = client;
 
       showApp();
-      applyHorseOnlyMode();
+      applyHorseOnlyMode(true);
 
       if (typeof global.applySpeciesConfig === "function") {
         onDashboardReady();
@@ -175,7 +175,7 @@
 
     if (isLoggedIn()) {
       showApp();
-      applyHorseOnlyMode();
+      applyHorseOnlyMode(false);
       if (global.VetLiveApi?.bootstrapIfLoggedIn) {
         global.VetLiveApi.bootstrapIfLoggedIn();
       }
