@@ -1580,6 +1580,12 @@ td {
   flex-wrap: wrap;
 }
 
+.health-sync-line {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #607487;
+}
+
 .api-chip-ok {
   background: #e8f7ee;
   color: #1a6b3c;

@@ -484,9 +484,14 @@
             <p class="section-subtitle" id="records-subtitle">Stable health records</p>
           </div>
           <div class="section-head-actions">
+            <label class="health-date-picker">
+              <span>Record date</span>
+              <input type="date" id="health-records-date" />
+            </label>
             <button type="button" class="primary header-action" id="api-refresh-btn">Refresh data</button>
           </div>
         </div>
+        <p class="health-sync-line" id="health-records-status"></p>
 
         <article class="panel health-records-panel">
           <div class="panel-head">
@@ -508,43 +513,6 @@
               <tbody id="ward-register-body"></tbody>
             </table>
           </div>
-        </article>
-
-        <article class="panel health-records-panel">
-          <div class="panel-head panel-head-with-date">
-            <div>
-              <h3 id="health-api-title">Horses from device</h3>
-              <p id="health-records-status">Select a date to view readings</p>
-            </div>
-            <label class="health-date-picker">
-              <span>Record date</span>
-              <input type="date" id="health-records-date" />
-            </label>
-          </div>
-          <div class="table-wrap">
-            <table class="health-records-table" id="health-records-table">
-              <thead>
-                <tr>
-                  <th>RMT No.</th>
-                  <th>Name</th>
-                  <th>Sessions</th>
-                  <th>Temperature</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="health-records-body"></tbody>
-            </table>
-          </div>
-        </article>
-
-        <article class="panel health-detail-panel" id="health-detail-panel" hidden>
-          <div class="panel-head">
-            <h3 id="health-detail-title">Temperature detail</h3>
-            <p id="health-detail-meta"></p>
-          </div>
-          <div class="health-session-picker" id="health-session-picker" role="tablist" aria-label="Select session"></div>
-          <div class="health-temp-grid" id="health-detail-temps"></div>
         </article>
       </section>
 

@@ -445,14 +445,6 @@
     const body = document.querySelector("#herd-table tbody");
     if (!body || body.dataset.liveBound === "1") return;
     body.dataset.liveBound = "1";
-    body.addEventListener("click", (e) => {
-      const row = e.target.closest("tr.herd-row-live");
-      if (!row) return;
-      const pid = row.dataset.petId;
-      if (!pid) return;
-      document.querySelector('#sidebar-nav a[data-screen="checkup"]')?.click();
-      showPetDetail(pid);
-    });
   }
 
   function applyHerdKpiFilter(filter, label) {
@@ -698,61 +690,6 @@
     return pet;
   }
 
-  function renderHealthRecordsTable() {
-    const body = $("health-records-body");
-    const status = $("health-records-status");
-    if (!body) return;
-
-    const dateIso = getSelectedDate();
-
-    if (store.error) {
-      if (status) status.textContent = store.error;
-      body.innerHTML = `<tr><td colspan="6">Could not load data. Check ngrok, CORS, and password.</td></tr>`;
-      return;
-    }
-
-    if (!store.pets.length) {
-      if (status) status.textContent = "No horses on this device.";
-      body.innerHTML = `<tr><td colspan="6">No horses returned from API.</td></tr>`;
-      return;
-    }
-
-    let taken = 0;
-    let notTaken = 0;
-    for (const p of store.pets) {
-      if (p._takenOnDate) taken++;
-      else notTaken++;
-    }
-    if (status) {
-      status.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken`;
-    }
-
-    body.innerHTML = store.pets
-      .map((pet) => {
-        const id = petId(pet);
-        const rmt = petRmtNo(pet);
-        const name = displayName(pet);
-        const sessions = pet._sessionLabel ?? "—";
-        const temp = pet._takenOnDate ? formatTemp(pet._latestTempC) : "—";
-        const vs = vitalsStatus(pet._latestTempC, pet._takenOnDate);
-        const err = pet._apiError ? ` <small title="${pet._apiError}">⚠</small>` : "";
-        const rowClass = pet._takenOnDate ? "" : "health-row-not-taken";
-        return `<tr class="health-pet-row ${rowClass}" data-pet-id="${id}">
-          <td>${rmt}</td>
-          <td><strong>${name}</strong>${err}</td>
-          <td>${sessions}</td>
-          <td>${temp}</td>
-          <td>${badgeHtml(vs.label, vs.class)}</td>
-          <td><button type="button" class="mini health-view-btn" data-pet-id="${id}" ${pet._takenOnDate ? "" : "disabled"}>Temps</button></td>
-        </tr>`;
-      })
-      .join("");
-
-    body.querySelectorAll(".health-view-btn:not([disabled])").forEach((btn) => {
-      btn.addEventListener("click", () => showPetDetail(btn.dataset.petId));
-    });
-  }
-
   function setHorseNav() {
     const link = document.getElementById("nav-herd-link");
     if (!link) return;
@@ -780,138 +717,6 @@
     setHorseKpiLabels();
   }
 
-  function renderTempGrid(readings, gridEl) {
-    const grid = gridEl || $("health-detail-temps");
-    if (!grid) return;
-    if (!readings?.length) {
-      grid.innerHTML = "<p class=\"health-temp-empty\">No temperature readings for this session.</p>";
-      return;
-    }
-
-    const irItems = readings.filter((r) => /ir|ear/i.test(String(r.sensor_type || r.type || "")));
-    const refItems = readings.filter((r) =>
-      /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
-    );
-    const otherItems = readings.filter((r) => {
-      const s = String(r.sensor_type || r.type || "");
-      return !/ir|ear/i.test(s) && !/reference|thermometer/i.test(s);
-    });
-
-    let html = "";
-    if (irItems.length) {
-      html += `<section class="health-temp-section">
-        <h4 class="health-temp-section-title">Infrared (ear)</h4>
-        <div class="health-temp-grid-inner">${irItems.map(renderTempCard).join("")}</div>
-      </section>`;
-    }
-    if (refItems.length) {
-      html += `<section class="health-temp-section">
-        <h4 class="health-temp-section-title">Reference thermometer</h4>
-        <div class="health-temp-grid-inner">${refItems.map(renderTempCard).join("")}</div>
-      </section>`;
-    }
-    if (otherItems.length) {
-      html += `<section class="health-temp-section">
-        <h4 class="health-temp-section-title">Other readings</h4>
-        <div class="health-temp-grid-inner">${otherItems.map(renderTempCard).join("")}</div>
-      </section>`;
-    }
-
-    grid.innerHTML = html || "<p class=\"health-temp-empty\">No readings</p>";
-  }
-
-  function renderTempCard(r) {
-    const sensor = String(r.sensor_type || r.type || "reading").replace(/_/g, " ");
-    const num = r.reading_number != null ? `#${r.reading_number}` : "";
-    const val = Number(r.temperature_value);
-    const level = val > 38.6 ? "high" : val > 0 && val < 37.2 ? "low" : "ok";
-    return `<article class="health-temp-card health-temp-${level}">
-      <span class="health-temp-card-label">${sensor} ${num}</span>
-      <strong>${formatTemp(r.temperature_value)}</strong>
-    </article>`;
-  }
-
-  async function loadSessionTemperatures(pet, session) {
-    const sid = String(session?.id ?? session?.exam_session_id ?? "").trim();
-    if (!sid) return [];
-    if (!pet._tempCache) pet._tempCache = {};
-    if (pet._tempCache[sid]) return pet._tempCache[sid];
-    const raw = await store.client.petTemperatureBySession(petId(pet), sid);
-    const readings = normalizeTemperature(raw);
-    pet._tempCache[sid] = readings;
-    return readings;
-  }
-
-  async function selectDetailSession(pet, session, index, sessionsOnDate) {
-    const picker = $("health-session-picker");
-    const dateIso = getSelectedDate();
-    const time = sessionTimeIst(session);
-    const meta = $("health-detail-meta");
-    if (meta) {
-      meta.textContent = `RMT No. ${petRmtNo(pet)} · ${formatDisplayDate(dateIso)} · Session ${index + 1} of ${sessionsOnDate.length}${time ? ` · ${time}` : ""}`;
-    }
-    picker?.querySelectorAll(".health-session-btn").forEach((btn, i) => {
-      btn.classList.toggle("active", i === index);
-      btn.setAttribute("aria-selected", i === index ? "true" : "false");
-    });
-    const grid = $("health-detail-temps");
-    if (grid) grid.innerHTML = "<p class=\"health-loading\">Loading temperatures…</p>";
-    try {
-      const readings = await loadSessionTemperatures(pet, session);
-      renderTempGrid(readings, grid);
-    } catch (e) {
-      if (grid) grid.innerHTML = `<p>Could not load temperatures: ${e.message || e}</p>`;
-    }
-  }
-
-  async function showPetDetail(id) {
-    const pet = store.pets.find((p) => petId(p) === id);
-    const panel = $("health-detail-panel");
-    const picker = $("health-session-picker");
-    if (!pet || !panel) return;
-
-    const dateIso = getSelectedDate();
-    panel.hidden = false;
-    pet._tempCache = {};
-
-    const titleName = displayName(pet) !== "—" ? displayName(pet) : petName(pet);
-    $("health-detail-title").textContent = `${titleName} — temperature`;
-
-    const sessionsOnDate = pet._sessionsOnDate || [];
-
-    if (!pet._takenOnDate || !sessionsOnDate.length) {
-      if (picker) picker.innerHTML = "";
-      $("health-detail-meta").textContent = `RMT No. ${petRmtNo(pet)} · ${formatDisplayDate(dateIso)}`;
-      renderTempGrid([], $("health-detail-temps"));
-      const grid = $("health-detail-temps");
-      if (grid) grid.innerHTML = "<p>Not taken on this date.</p>";
-      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      return;
-    }
-
-    if (picker) {
-      picker.innerHTML = `<div class="health-session-picker-inner">${sessionsOnDate
-        .map((session, i) => {
-          const time = sessionTimeIst(session);
-          return `<button type="button" class="health-session-btn${i === 0 ? " active" : ""}" role="tab" aria-selected="${i === 0 ? "true" : "false"}" data-session-index="${i}">
-            <span class="health-session-num">Session ${i + 1}</span>
-            ${time ? `<span class="health-session-time">${time}</span>` : ""}
-          </button>`;
-        })
-        .join("")}</div>`;
-
-      picker.querySelectorAll(".health-session-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const idx = Number(btn.dataset.sessionIndex);
-          selectDetailSession(pet, sessionsOnDate[idx], idx, sessionsOnDate);
-        });
-      });
-    }
-
-    await selectDetailSession(pet, sessionsOnDate[0], 0, sessionsOnDate);
-    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-
   async function applyDateFilter(dateIso) {
     store.selectedDate = dateIso;
     const status = $("health-records-status");
@@ -919,7 +724,6 @@
       if (status) status.textContent = `Loading ${formatDisplayDate(dateIso)}… ${i + 1}/${store.pets.length}`;
       await applyDateToPet(store.pets[i], dateIso);
     }
-    renderHealthRecordsTable();
     updateDashboardKpis();
   }
 
@@ -944,7 +748,7 @@
       store.error = e.message || String(e);
       console.error("Live API:", e);
       if (kpiTotal) kpiTotal.textContent = "—";
-      renderHealthRecordsTable();
+      if (status) status.textContent = store.error;
     } finally {
       store.loading = false;
     }
@@ -986,7 +790,7 @@
   function onCheckupScreen() {
     renderWardRegister();
     if (!store.pets.length && !store.loading) loadAllPets();
-    else renderHealthRecordsTable();
+    else updateDashboardKpis();
   }
 
   function bindUi() {
@@ -1035,7 +839,6 @@
   global.VetLiveApi = {
     loadAllPets,
     store,
-    showPetDetail,
     onCheckupScreen,
     applyDateFilter,
     setHorseKpiLabels,
