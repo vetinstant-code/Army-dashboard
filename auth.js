@@ -82,7 +82,10 @@
       sel.value = "horse";
     }
     const locked = $("species-locked-label");
-    if (locked) locked.hidden = false;
+    if (locked) {
+      locked.hidden = true;
+      locked.setAttribute("aria-hidden", "true");
+    }
 
     if (global.API_CONFIG) {
       global.API_CONFIG.deviceId = ALLOWED_DEVICE;

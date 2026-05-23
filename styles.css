@@ -2760,6 +2760,11 @@ td {
   display: none !important;
 }
 
+.device-army #species-locked-label,
+.species-horse-only #species-locked-label {
+  display: none !important;
+}
+
 .badge.muted {
   background: #eef2f6;
   color: #6b8299;

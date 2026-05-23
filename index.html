@@ -478,20 +478,14 @@
       </section>
 
       <section class="screen" id="checkup">
+        <input type="date" id="health-records-date" hidden aria-hidden="true" />
         <div class="section-head">
           <div class="section-title-stack">
             <h3 id="records-title">Herd Health Records</h3>
             <p class="section-subtitle" id="records-subtitle">Stable health records</p>
-          </div>
-          <div class="section-head-actions">
-            <label class="health-date-picker">
-              <span>Record date</span>
-              <input type="date" id="health-records-date" />
-            </label>
-            <button type="button" class="primary header-action" id="api-refresh-btn">Refresh data</button>
+            <p class="health-sync-line" id="health-records-status"></p>
           </div>
         </div>
-        <p class="health-sync-line" id="health-records-status"></p>
 
         <article class="panel health-records-panel">
           <div class="panel-head">
@@ -1821,7 +1815,8 @@
       const min = Math.min(...data, opts.targetMin ?? data[0]) - (opts.padMin ?? 1);
       const max = Math.max(...data, opts.targetMax ?? data[0]) + (opts.padMax ?? 1);
       const range = max - min || 1;
-      const xAt = (i) => pad.l + (i / (data.length - 1)) * plotW;
+      const xAt = (i) =>
+        pad.l + (data.length <= 1 ? plotW / 2 : (i / (data.length - 1)) * plotW);
       const yAt = (v) => pad.t + plotH - ((v - min) / range) * plotH;
 
       ctx.clearRect(0, 0, w, h);
@@ -1872,10 +1867,11 @@
         ctx.fill();
       });
 
+      const dayLabels = opts.dayLabels || TREND_DAYS;
       ctx.fillStyle = "#64748b";
       ctx.font = "10px Inter, sans-serif";
-      TREND_DAYS.forEach((label, i) => {
-        if (i % 2 === 0 || i === TREND_DAYS.length - 1) {
+      dayLabels.forEach((label, i) => {
+        if (i % 2 === 0 || i === dayLabels.length - 1) {
           ctx.fillText(label, xAt(i) - 14, h - 8);
         }
       });
@@ -1894,7 +1890,7 @@
             }
           });
           tip.style.display = "block";
-          tip.textContent = `${TREND_DAYS[idx]}: ${data[idx]}${opts.suffix || ""}`;
+          tip.textContent = `${dayLabels[idx]}: ${data[idx]}${opts.suffix || ""}`;
           tip.style.left = `${xAt(idx)}px`;
           tip.style.top = `${yAt(data[idx]) - 28}px`;
         };
@@ -1907,10 +1903,17 @@
 
     function drawAnimalCharts(details) {
       const norms = VITAL_NORMS[currentSpecies] || VITAL_NORMS.cattle;
+      const dayLabels = details.chartLabels || TREND_DAYS;
+      const meta = details.chartMeta || [
+        { title: "Temperature trend", sub: "Last 7 days · °C" },
+        { title: "Heart rate trend", sub: "Last 7 days · bpm" },
+        { title: "SpO₂ trend", sub: "Last 7 days · %" },
+        { title: "Respiration trend", sub: "Last 7 days · rpm" },
+      ];
       const charts = [
         {
           id: "animal-chart-temp",
-          data: details.tempTrend,
+          data: details.tempTrend || details.irTrend,
           opts: {
             color: "#dc2626",
             fill: "rgba(220, 38, 38, 0.1)",
@@ -1919,6 +1922,7 @@
             suffix: "°C",
             padMin: 0.4,
             padMax: 0.4,
+            dayLabels,
           },
         },
         {
@@ -1927,9 +1931,12 @@
           opts: {
             color: "#7c3aed",
             fill: "rgba(124, 58, 237, 0.1)",
-            targetMin: norms.hr.min,
-            targetMax: norms.hr.max,
-            suffix: " bpm",
+            targetMin: norms.temp.min,
+            targetMax: norms.temp.max,
+            suffix: "°C",
+            padMin: 0.4,
+            padMax: 0.4,
+            dayLabels,
           },
         },
         {
@@ -1938,9 +1945,12 @@
           opts: {
             color: "#0891b2",
             fill: "rgba(8, 145, 178, 0.1)",
-            targetMin: norms.spo2.min,
-            targetMax: 100,
-            suffix: "%",
+            targetMin: norms.temp.min,
+            targetMax: norms.temp.max,
+            suffix: "°C",
+            padMin: 0.4,
+            padMax: 0.4,
+            dayLabels,
           },
         },
         {
@@ -1949,13 +1959,23 @@
           opts: {
             color: "#059669",
             fill: "rgba(5, 150, 105, 0.1)",
-            targetMin: norms.resp.min,
-            targetMax: norms.resp.max,
-            suffix: " rpm",
+            targetMin: 0,
+            targetMax: 5,
+            suffix: "",
+            padMin: 0,
+            padMax: 1,
+            dayLabels,
           },
         },
       ];
-      charts.forEach((c) => drawAnimalChart(c.id, c.data, c.opts));
+      charts.forEach((c, i) => {
+        const card = document.getElementById(c.id)?.closest(".animal-chart-card");
+        const head = card?.querySelector(".animal-chart-head");
+        if (head && meta[i]) {
+          head.innerHTML = `<h4>${meta[i].title}</h4><span>${meta[i].sub}</span>`;
+        }
+        drawAnimalChart(c.id, c.data, c.opts);
+      });
     }
 
     function closeCattleModal() {
@@ -1965,32 +1985,39 @@
       activeAnimalDetail = null;
     }
 
-    function openCattleModal(cowId) {
-      const raw = cattleData[cowId];
-      if (!raw) return;
-      const details = enrichAnimalDetails(raw);
+    function openAnimalDetailPanel(details) {
+      if (!details) return;
       activeAnimalDetail = details;
       const norms = VITAL_NORMS[currentSpecies] || VITAL_NORMS.cattle;
-      const p = details.parsed;
+      const p = details.parsed || {};
+
+      const modalImg = document.getElementById("modal-cow-image");
+      if (modalImg && details.modalImageSrc) {
+        modalImg.src = details.modalImageSrc;
+        modalImg.alt = details.name || "Horse";
+      }
 
       document.getElementById("modal-cow-id").textContent = `${getCurrentSpeciesConfig().idLabel}: ${details.id}`;
-      document.getElementById("modal-cow-name").textContent = details.name;
-      document.getElementById("modal-cow-breed").textContent = details.breed;
-      document.getElementById("modal-cow-age").textContent = `Age — ${details.age}`;
-      document.getElementById("modal-health-score").textContent = `Health score: ${details.healthScore}/100`;
-      document.getElementById("modal-last-check").textContent = `Last vitals: ${details.lastVitalsAt}`;
-      document.getElementById("modal-active-alert").textContent = details.activeAlert;
+      document.getElementById("modal-cow-name").textContent = details.name || "—";
+      document.getElementById("modal-cow-breed").textContent = details.breed || "—";
+      document.getElementById("modal-cow-age").textContent = `Age — ${details.age || "—"}`;
+      document.getElementById("modal-health-score").textContent = details.healthScore
+        ? `Health score: ${details.healthScore}/100`
+        : "";
+      document.getElementById("modal-last-check").textContent = `Last vitals: ${details.lastVitalsAt || "—"}`;
+      document.getElementById("modal-active-alert").textContent =
+        details.activeAlert || "No active critical alert";
 
       const statusEl = document.getElementById("modal-health-status");
-      statusEl.textContent = details.statusLabel;
-      statusEl.className = `animal-status-pill ${details.statusClass}`.trim();
+      statusEl.textContent = details.statusLabel || "Stable";
+      statusEl.className = `animal-status-pill ${details.statusClass || ""}`.trim();
 
       document.getElementById("modal-activity-label").textContent = norms.activityLabel;
       document.getElementById("modal-vital-temp").textContent = p.temp != null ? `${p.temp}°C` : "—";
       document.getElementById("modal-vital-hr").textContent = p.hr != null ? String(p.hr) : "—";
       document.getElementById("modal-vital-spo2").textContent = p.spo2 != null ? String(p.spo2) : "—";
       document.getElementById("modal-vital-resp").textContent = p.resp != null ? String(p.resp) : "—";
-      document.getElementById("modal-vital-activity").textContent = p.activity;
+      document.getElementById("modal-vital-activity").textContent = p.activity || "—";
 
       document.querySelectorAll(".animal-vital-tile").forEach((tile) => {
         const metric = tile.dataset.metric;
@@ -2002,17 +2029,17 @@
         tile.className = `animal-vital-tile ${metric !== "activity" ? vitalTileState(metric, val, norms) : ""}`.trim();
       });
 
-      document.getElementById("modal-result-title").textContent = details.resultTitle;
-      document.getElementById("modal-result-note").textContent = details.resultNote;
-      document.getElementById("modal-result-status").textContent = details.statusLabel;
-      document.getElementById("modal-assignee").textContent = details.assignee || "Worker — Unassigned";
+      document.getElementById("modal-result-title").textContent = details.resultTitle || "Health summary";
+      document.getElementById("modal-result-note").textContent = details.resultNote || "";
+      document.getElementById("modal-result-status").textContent = details.statusLabel || "Stable";
+      document.getElementById("modal-assignee").textContent = details.assignee || "Dr. Santosh";
       document.getElementById("modal-recheck").textContent = details.recheck || "6 hours";
 
       renderList("modal-vitals", details.vitals || []);
       renderList("modal-history", details.history || []);
       renderList("modal-today-list", details.todayLog || []);
-      renderList("modal-protocol", details.protocol || ["Isolate if required", "Run full vitals again", "Notify supervisor"]);
-      renderList("modal-recovery", details.recovery || ["Day 1: Alert logged", "Day 2: Follow-up check due"]);
+      renderList("modal-protocol", details.protocol || ["Review temperature trend", "Notify vet if elevated"]);
+      renderList("modal-recovery", details.recovery || []);
       renderList("modal-advice", details.advice || []);
       renderList("modal-reports", details.reports || []);
 
@@ -2026,6 +2053,18 @@
       requestAnimationFrame(() => {
         requestAnimationFrame(() => drawAnimalCharts(details));
       });
+    }
+
+    window.openAnimalDetailPanel = openAnimalDetailPanel;
+
+    function openCattleModal(cowId) {
+      if (document.body.classList.contains("device-army") && window.VetLiveApi?.openHorseDetail) {
+        window.VetLiveApi.openHorseDetail(cowId);
+        return;
+      }
+      const raw = cattleData[cowId];
+      if (!raw) return;
+      openAnimalDetailPanel(enrichAnimalDetails(raw));
     }
 
     kpiCards.forEach((card) => {

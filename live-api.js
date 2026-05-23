@@ -171,6 +171,7 @@
     global.VetDashboardUi?.updateDashboardActionRows?.(actionRows);
     renderWardDiseaseDistribution();
     renderWardDailyReport();
+    updateHealthRecordsSummary();
   }
 
   function wardDiseaseKey(label) {
@@ -409,7 +410,7 @@
         <td>${age}${age !== "—" ? " yrs" : ""}</td>
         <td>${lastCheck}</td>
         <td>${herdHealthBadge("sick", ward)}</td>
-        <td><button type="button" class="mini">Open</button></td>
+        <td><button type="button" class="mini herd-open-btn" data-open-id="${openId}"${petKey ? ` data-pet-id="${petKey}"` : ""}>Open</button></td>
       </tr>`);
     }
 
@@ -433,7 +434,7 @@
         <td>${age}</td>
         <td>${lastCheck}</td>
         <td>${herdHealthBadge(health)}</td>
-        <td><button type="button" class="mini">Open</button></td>
+        <td><button type="button" class="mini herd-open-btn" data-open-id="${id}" data-pet-id="${id}">Open</button></td>
       </tr>`);
     }
 
@@ -445,6 +446,13 @@
     const body = document.querySelector("#herd-table tbody");
     if (!body || body.dataset.liveBound === "1") return;
     body.dataset.liveBound = "1";
+    body.addEventListener("click", (e) => {
+      const btn = e.target.closest(".herd-open-btn");
+      if (!btn) return;
+      e.stopPropagation();
+      const id = btn.dataset.petId || btn.dataset.openId;
+      if (id) openHorseDetail(id);
+    });
   }
 
   function applyHerdKpiFilter(filter, label) {
@@ -699,6 +707,8 @@
 
   function setHorseKpiLabels() {
     setHorseNav();
+    const kpiTotalIcon = document.querySelector(".kpi-item.total .kpi-icon img");
+    if (kpiTotalIcon) kpiTotalIcon.src = "assets/icons/horses.svg?v=2";
     const totalLabel = $("kpi-total-label");
     const riskLabel = $("kpi-risk-label");
     const heatLabel = $("kpi-heat-label");
@@ -717,11 +727,192 @@
     setHorseKpiLabels();
   }
 
+  function updateHealthRecordsSummary() {
+    const el = $("health-records-status");
+    if (el) el.textContent = `${countWardSickHorses()} horses under treatment`;
+  }
+
+  function maxTempFromReadings(readings, filterFn) {
+    const vals = (readings || [])
+      .filter(filterFn)
+      .map((r) => Number(r.temperature_value))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    return vals.length ? Math.max(...vals) : null;
+  }
+
+  async function loadSessionTemperatures(pet, session) {
+    const sid = String(session?.id ?? session?.exam_session_id ?? "").trim();
+    if (!sid) return [];
+    if (!pet._tempCache) pet._tempCache = {};
+    if (pet._tempCache[sid]) return pet._tempCache[sid];
+    const raw = await store.client.petTemperatureBySession(petId(pet), sid);
+    const readings = normalizeTemperature(raw);
+    pet._tempCache[sid] = readings;
+    return readings;
+  }
+
+  async function buildPetChartHistory(pet) {
+    await ensureClient();
+    await loadSessionsForPet(pet);
+    const sessions = [...(pet._sessions || [])].sort((a, b) => {
+      const ta = new Date(a.started_at || a.created_at || 0).getTime();
+      const tb = new Date(b.started_at || b.created_at || 0).getTime();
+      return ta - tb;
+    });
+    const recent = sessions.slice(-14);
+    const dayMap = new Map();
+
+    for (const session of recent) {
+      let readings = [];
+      try {
+        readings = await loadSessionTemperatures(pet, session);
+      } catch {
+        readings = [];
+      }
+      const dateIso = sessionStartedDateIst(session);
+      if (!dateIso) continue;
+      const irMax = maxTempFromReadings(readings, (r) =>
+        /ir|ear/i.test(String(r.sensor_type || r.type || ""))
+      );
+      const refMax = maxTempFromReadings(readings, (r) =>
+        /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
+      );
+      const anyMax = maxTempFromReadings(readings, () => true);
+      if (!dayMap.has(dateIso)) dayMap.set(dateIso, { ir: [], ref: [], any: [], sessions: 0 });
+      const bucket = dayMap.get(dateIso);
+      bucket.sessions += 1;
+      if (irMax != null) bucket.ir.push(irMax);
+      if (refMax != null) bucket.ref.push(refMax);
+      if (anyMax != null) bucket.any.push(anyMax);
+    }
+
+    const days = [...dayMap.keys()].sort();
+    const chartLabels = days.map((iso) => {
+      const [, m, d] = iso.split("-");
+      return `${d}/${m}`;
+    });
+    const fillSeries = (pick) => {
+      const vals = days.map((iso) => {
+        const b = dayMap.get(iso);
+        const arr = pick(b);
+        return arr.length ? Math.max(...arr) : null;
+      });
+      const valid = vals.filter((v) => v != null);
+      const fallback = valid.length ? valid[valid.length - 1] : 38.0;
+      return vals.map((v) => (v != null ? Math.round(v * 10) / 10 : fallback));
+    };
+
+    return {
+      chartLabels,
+      irTrend: fillSeries((b) => b.ir),
+      refTrend: fillSeries((b) => b.ref),
+      anyTrend: fillSeries((b) => b.any),
+      sessionTrend: days.map((iso) => dayMap.get(iso).sessions),
+    };
+  }
+
+  function findWardForPet(pet) {
+    const regt = petRmtNo(pet);
+    return getWardHorsesByRegt().find((w) => String(w.regt).trim() === regt) || null;
+  }
+
+  async function openHorseDetail(petIdOrRegt) {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    let pet = store.pets.find((p) => petId(p) === String(petIdOrRegt));
+    if (!pet) {
+      pet = store.pets.find((p) => petRmtNo(p) === String(petIdOrRegt));
+    }
+    const ward =
+      getWardHorsesByRegt().find((w) => String(w.regt).trim() === String(petIdOrRegt)) ||
+      (pet ? findWardForPet(pet) : null);
+
+    if (!pet && !ward) return;
+
+    if (!pet && ward) {
+      global.openAnimalDetailPanel?.({
+        id: ward.regt,
+        name: horseDisplayName(ward, null),
+        breed: "—",
+        age: "—",
+        statusLabel: ward.active ? "Active" : "Discharged",
+        statusClass: ward.active ? "crit" : "",
+        resultTitle: ward.disease,
+        resultNote: `Ward admission ${ward.admission}`,
+        vitals: [`Condition: ${ward.disease}`, `Status: ${ward.active ? "Active" : "Discharged"}`],
+        parsed: { temp: null, hr: null, spo2: null, resp: null, activity: "—" },
+        chartLabels: [ward.admission],
+        irTrend: [38.0],
+        refTrend: [38.0],
+        anyTrend: [38.0],
+        sessionTrend: [1],
+        chartMeta: [
+          { title: "Max IR (ear)", sub: "Ward record only" },
+          { title: "Max reference", sub: "No device sessions" },
+          { title: "Max any reading", sub: "—" },
+          { title: "Sessions / day", sub: "—" },
+        ],
+        modalImageSrc: "assets/icons/horse-sidebar.jpg",
+      });
+      return;
+    }
+
+    if (!pet) return;
+
+    const charts = await buildPetChartHistory(pet);
+    const w = findWardForPet(pet);
+    const temp = pet._latestTempC;
+    const vs = vitalsStatus(temp, pet._takenOnDate);
+
+    global.openAnimalDetailPanel?.({
+      id: petRmtNo(pet),
+      name: horseDisplayName(w, pet),
+      breed: String(pet.breed ?? pet.species ?? "—").trim() || "—",
+      age: pet.age != null ? `${pet.age} yrs` : "—",
+      statusLabel: w ? (w.active ? "Active ward" : "Discharged") : vs.label,
+      statusClass: w?.active || vs.class === "high" ? "crit" : vs.class === "warn" ? "risk" : "",
+      resultTitle: w?.disease || vs.label,
+      resultNote: w
+        ? `Ward: ${w.disease} · ${w.active ? "Active" : "Discharged"}`
+        : "Device health record",
+      activeAlert: w?.active ? `${w.disease} — active ward case` : "No active ward alert",
+      lastVitalsAt: pet._takenOnDate ? formatDisplayDate(getSelectedDate()) : "Not taken on selected date",
+      vitals: [
+        `Temperature: ${formatTemp(temp)}`,
+        `Sessions on date: ${pet._sessionLabel || "—"}`,
+        w ? `Ward: ${w.disease}` : "",
+      ].filter(Boolean),
+      parsed: {
+        temp: temp != null ? Number(temp) : null,
+        hr: null,
+        spo2: null,
+        resp: null,
+        activity: "—",
+      },
+      chartLabels: charts.chartLabels,
+      irTrend: charts.irTrend,
+      hrTrend: charts.refTrend,
+      spo2Trend: charts.anyTrend,
+      respTrend: charts.sessionTrend,
+      chartMeta: [
+        { title: "Max IR (ear) per day", sub: "Highest infrared · °C" },
+        { title: "Max reference per day", sub: "Thermometer · °C" },
+        { title: "Max reading per day", sub: "All sensors · °C" },
+        { title: "Sessions per day", sub: "Exam sessions" },
+      ],
+      modalImageSrc: "assets/icons/horse-sidebar.jpg",
+      history: w ? [`Ward admission ${w.admission}`, w.discharge ? `Discharged ${w.discharge}` : "Still active"] : [],
+      todayLog: [`Last check: ${formatDisplayDate(getSelectedDate())}`],
+      protocol: ["Review temperature trend", "Compare IR vs reference", "Update ward register if needed"],
+      recovery: [],
+      advice: [],
+      reports: [],
+      assignee: "Dr. Santosh",
+    });
+  }
+
   async function applyDateFilter(dateIso) {
     store.selectedDate = dateIso;
-    const status = $("health-records-status");
     for (let i = 0; i < store.pets.length; i++) {
-      if (status) status.textContent = `Loading ${formatDisplayDate(dateIso)}… ${i + 1}/${store.pets.length}`;
       await applyDateToPet(store.pets[i], dateIso);
     }
     updateDashboardKpis();
@@ -731,8 +922,6 @@
     if (store.loading) return;
     store.loading = true;
     store.error = null;
-    const status = $("health-records-status");
-    if (status) status.textContent = "Connecting…";
 
     const kpiTotal = $("kpi-total-count");
     if (kpiTotal) kpiTotal.textContent = "…";
@@ -748,7 +937,7 @@
       store.error = e.message || String(e);
       console.error("Live API:", e);
       if (kpiTotal) kpiTotal.textContent = "—";
-      if (status) status.textContent = store.error;
+      updateHealthRecordsSummary();
     } finally {
       store.loading = false;
     }
@@ -777,18 +966,14 @@
     if (elRisk) elRisk.textContent = String(notTaken);
     if (elSick) elSick.textContent = String(wardSick);
 
-    const dateIso = getSelectedDate();
-    const sub = $("health-records-status");
-    if (sub) {
-      sub.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken · ${total} horses · ${wardSick} in ward register`;
-    }
-
+    updateHealthRecordsSummary();
     renderHerdTable();
     renderWardRiskDashboard();
   }
 
   function onCheckupScreen() {
     renderWardRegister();
+    updateHealthRecordsSummary();
     if (!store.pets.length && !store.loading) loadAllPets();
     else updateDashboardKpis();
   }
@@ -807,7 +992,7 @@
       });
     }
 
-    $("api-refresh-btn")?.addEventListener("click", () => loadAllPets());
+    document.getElementById("api-refresh-btn")?.addEventListener("click", () => loadAllPets());
 
     document.getElementById("sidebar-nav")?.addEventListener("click", (e) => {
       const link = e.target.closest("a[data-screen]");
@@ -855,6 +1040,8 @@
     applyHerdDiseaseFilter,
     renderWardDiseaseDistribution,
     renderWardDailyReport,
+    openHorseDetail,
+    updateHealthRecordsSummary,
   };
 
   document.addEventListener("DOMContentLoaded", () => {
