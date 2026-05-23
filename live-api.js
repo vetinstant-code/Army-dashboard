@@ -471,6 +471,9 @@
     const status = $("health-records-status");
     if (status) status.textContent = "Connecting…";
 
+    const kpiTotal = $("kpi-total-count");
+    if (kpiTotal) kpiTotal.textContent = "…";
+
     try {
       const client = await ensureClient();
       const raw = await client.listPets();
@@ -480,6 +483,7 @@
     } catch (e) {
       store.error = e.message || String(e);
       console.error("Live API:", e);
+      if (kpiTotal) kpiTotal.textContent = "—";
       renderHealthRecordsTable();
     } finally {
       store.loading = false;
@@ -532,8 +536,10 @@
     renderWardRegister();
     const dateInput = $("health-records-date");
     if (dateInput) {
-      dateInput.value = todayIso();
-      store.selectedDate = dateInput.value;
+      if (!dateInput.value) {
+        dateInput.value = todayIso();
+        store.selectedDate = dateInput.value;
+      }
       dateInput.addEventListener("change", () => {
         if (store.pets.length) applyDateFilter(dateInput.value);
         else loadAllPets();
@@ -550,16 +556,25 @@
     if (location.hash === "#checkup") onCheckupScreen();
   }
 
+  function bootstrapIfLoggedIn() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    if (store.pets.length || store.loading) return;
+    loadAllPets();
+  }
+
+  global.VetLiveApi = {
+    loadAllPets,
+    store,
+    showPetDetail,
+    onCheckupScreen,
+    applyDateFilter,
+    setHorseKpiLabels,
+    setTotalHorseCount,
+    bootstrapIfLoggedIn,
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     bindUi();
-    global.VetLiveApi = {
-      loadAllPets,
-      store,
-      showPetDetail,
-      onCheckupScreen,
-      applyDateFilter,
-      setHorseKpiLabels,
-      setTotalHorseCount,
-    };
+    bootstrapIfLoggedIn();
   });
 })(window);

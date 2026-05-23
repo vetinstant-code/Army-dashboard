@@ -2184,7 +2184,8 @@
     window.applySpeciesConfig = applySpeciesConfig;
     window.dispatchEvent(new Event("dashboard:ready"));
     if (window.VetAuth?.isLoggedIn()) {
-      window.VetAuth.onDashboardReady();
+      window.VetAuth.applyHorseOnlyMode();
+      window.VetLiveApi?.bootstrapIfLoggedIn?.();
     }
   </script>
 </body>

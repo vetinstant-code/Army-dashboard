@@ -57,7 +57,7 @@
     $("logout-btn")?.removeAttribute("hidden");
   }
 
-  function applyHorseOnlyMode() {
+  function applyHorseOnlyMode(resetKpiCounts) {
     document.body.classList.add("device-army", "species-horse-only");
     document.title = "VetInstant — Horse Health (ARMY)";
 
@@ -77,10 +77,12 @@
     if (global.VetLiveApi?.setHorseKpiLabels) {
       global.VetLiveApi.setHorseKpiLabels();
     }
-    ["kpi-total-count", "kpi-healthy-count", "kpi-risk-count", "kpi-sick-count"].forEach((id) => {
-      const el = $(id);
-      if (el) el.textContent = "—";
-    });
+    if (resetKpiCounts) {
+      ["kpi-total-count", "kpi-healthy-count", "kpi-risk-count", "kpi-sick-count"].forEach((id) => {
+        const el = $(id);
+        if (el) el.textContent = "—";
+      });
+    }
 
     if (typeof global.applySpeciesConfig === "function") {
       global.applySpeciesConfig("horse");
@@ -89,7 +91,9 @@
 
   function onDashboardReady() {
     applyHorseOnlyMode();
-    if (global.VetLiveApi?.loadAllPets) {
+    if (global.VetLiveApi?.bootstrapIfLoggedIn) {
+      global.VetLiveApi.bootstrapIfLoggedIn();
+    } else if (global.VetLiveApi?.loadAllPets) {
       global.VetLiveApi.loadAllPets();
     }
   }
@@ -171,6 +175,10 @@
 
     if (isLoggedIn()) {
       showApp();
+      applyHorseOnlyMode();
+      if (global.VetLiveApi?.bootstrapIfLoggedIn) {
+        global.VetLiveApi.bootstrapIfLoggedIn();
+      }
     } else {
       showLogin();
     }
