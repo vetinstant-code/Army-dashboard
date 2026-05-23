@@ -751,7 +751,37 @@
     return readings;
   }
 
-  async function buildPetChartHistory(pet) {
+  async function getLastTakenTemperature(pet) {
+    if (pet._latestTempC != null && Number(pet._latestTempC) > 0) {
+      return Number(pet._latestTempC);
+    }
+    await ensureClient();
+    await loadSessionsForPet(pet);
+    const sessions = [...(pet._sessions || [])].sort((a, b) => {
+      const ta = new Date(a.started_at || a.created_at || 0).getTime();
+      const tb = new Date(b.started_at || b.created_at || 0).getTime();
+      return ta - tb;
+    });
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      let readings = [];
+      try {
+        readings = await loadSessionTemperatures(pet, sessions[i]);
+      } catch {
+        readings = [];
+      }
+      const irMax = maxTempFromReadings(readings, (r) =>
+        /ir|ear/i.test(String(r.sensor_type || r.type || ""))
+      );
+      if (irMax != null) return irMax;
+      const refMax = maxTempFromReadings(readings, (r) =>
+        /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
+      );
+      if (refMax != null) return refMax;
+    }
+    return null;
+  }
+
+  async function buildTemperatureTrend(pet) {
     await ensureClient();
     await loadSessionsForPet(pet);
     const sessions = [...(pet._sessions || [])].sort((a, b) => {
@@ -774,41 +804,23 @@
       const irMax = maxTempFromReadings(readings, (r) =>
         /ir|ear/i.test(String(r.sensor_type || r.type || ""))
       );
-      const refMax = maxTempFromReadings(readings, (r) =>
-        /reference|thermometer/i.test(String(r.sensor_type || r.type || ""))
-      );
-      const anyMax = maxTempFromReadings(readings, () => true);
-      if (!dayMap.has(dateIso)) dayMap.set(dateIso, { ir: [], ref: [], any: [], sessions: 0 });
-      const bucket = dayMap.get(dateIso);
-      bucket.sessions += 1;
-      if (irMax != null) bucket.ir.push(irMax);
-      if (refMax != null) bucket.ref.push(refMax);
-      if (anyMax != null) bucket.any.push(anyMax);
+      if (irMax == null) continue;
+      if (!dayMap.has(dateIso)) dayMap.set(dateIso, []);
+      dayMap.get(dateIso).push(irMax);
     }
 
     const days = [...dayMap.keys()].sort();
-    const chartLabels = days.map((iso) => {
+    const chartLabels = [];
+    const tempTrend = [];
+    for (const iso of days) {
+      const vals = dayMap.get(iso);
+      if (!vals.length) continue;
       const [, m, d] = iso.split("-");
-      return `${d}/${m}`;
-    });
-    const fillSeries = (pick) => {
-      const vals = days.map((iso) => {
-        const b = dayMap.get(iso);
-        const arr = pick(b);
-        return arr.length ? Math.max(...arr) : null;
-      });
-      const valid = vals.filter((v) => v != null);
-      const fallback = valid.length ? valid[valid.length - 1] : 38.0;
-      return vals.map((v) => (v != null ? Math.round(v * 10) / 10 : fallback));
-    };
+      chartLabels.push(`${d}/${m}`);
+      tempTrend.push(Math.round(Math.max(...vals) * 10) / 10);
+    }
 
-    return {
-      chartLabels,
-      irTrend: fillSeries((b) => b.ir),
-      refTrend: fillSeries((b) => b.ref),
-      anyTrend: fillSeries((b) => b.any),
-      sessionTrend: days.map((iso) => dayMap.get(iso).sessions),
-    };
+    return { chartLabels, tempTrend };
   }
 
   function findWardForPet(pet) {
@@ -840,17 +852,8 @@
         resultNote: `Ward admission ${ward.admission}`,
         vitals: [`Condition: ${ward.disease}`, `Status: ${ward.active ? "Active" : "Discharged"}`],
         parsed: { temp: null, hr: null, spo2: null, resp: null, activity: "—" },
-        chartLabels: [ward.admission],
-        irTrend: [38.0],
-        refTrend: [38.0],
-        anyTrend: [38.0],
-        sessionTrend: [1],
-        chartMeta: [
-          { title: "Max IR (ear)", sub: "Ward record only" },
-          { title: "Max reference", sub: "No device sessions" },
-          { title: "Max any reading", sub: "—" },
-          { title: "Sessions / day", sub: "—" },
-        ],
+        chartLabels: [],
+        tempTrend: [],
         modalImageSrc: "assets/icons/horse-sidebar.jpg",
       });
       return;
@@ -858,10 +861,11 @@
 
     if (!pet) return;
 
-    const charts = await buildPetChartHistory(pet);
+    await applyDateToPet(pet, getSelectedDate());
+    const trend = await buildTemperatureTrend(pet);
+    const lastTemp = await getLastTakenTemperature(pet);
     const w = findWardForPet(pet);
-    const temp = pet._latestTempC;
-    const vs = vitalsStatus(temp, pet._takenOnDate);
+    const vs = vitalsStatus(lastTemp, lastTemp != null);
 
     global.openAnimalDetailPanel?.({
       id: petRmtNo(pet),
@@ -873,36 +877,26 @@
       resultTitle: w?.disease || vs.label,
       resultNote: w
         ? `Ward: ${w.disease} · ${w.active ? "Active" : "Discharged"}`
-        : "Device health record",
+        : "Stable health record",
       activeAlert: w?.active ? `${w.disease} — active ward case` : "No active ward alert",
-      lastVitalsAt: pet._takenOnDate ? formatDisplayDate(getSelectedDate()) : "Not taken on selected date",
+      lastVitalsAt: lastTemp != null ? formatDisplayDate(getSelectedDate()) : "Not taken yet",
       vitals: [
-        `Temperature: ${formatTemp(temp)}`,
-        `Sessions on date: ${pet._sessionLabel || "—"}`,
+        lastTemp != null ? `Temperature (last taken): ${formatTemp(lastTemp)}` : "Temperature: not taken",
         w ? `Ward: ${w.disease}` : "",
       ].filter(Boolean),
       parsed: {
-        temp: temp != null ? Number(temp) : null,
+        temp: lastTemp != null ? Number(lastTemp) : null,
         hr: null,
         spo2: null,
         resp: null,
         activity: "—",
       },
-      chartLabels: charts.chartLabels,
-      irTrend: charts.irTrend,
-      hrTrend: charts.refTrend,
-      spo2Trend: charts.anyTrend,
-      respTrend: charts.sessionTrend,
-      chartMeta: [
-        { title: "Max IR (ear) per day", sub: "Highest infrared · °C" },
-        { title: "Max reference per day", sub: "Thermometer · °C" },
-        { title: "Max reading per day", sub: "All sensors · °C" },
-        { title: "Sessions per day", sub: "Exam sessions" },
-      ],
+      chartLabels: trend.chartLabels,
+      tempTrend: trend.tempTrend,
       modalImageSrc: "assets/icons/horse-sidebar.jpg",
       history: w ? [`Ward admission ${w.admission}`, w.discharge ? `Discharged ${w.discharge}` : "Still active"] : [],
-      todayLog: [`Last check: ${formatDisplayDate(getSelectedDate())}`],
-      protocol: ["Review temperature trend", "Compare IR vs reference", "Update ward register if needed"],
+      todayLog: lastTemp != null ? [`Last temperature: ${formatTemp(lastTemp)}`] : [],
+      protocol: ["Review temperature trend", "Monitor ward condition", "Notify vet if elevated"],
       recovery: [],
       advice: [],
       reports: [],

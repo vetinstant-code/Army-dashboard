@@ -490,7 +490,6 @@
         <article class="panel health-records-panel">
           <div class="panel-head">
             <h3>Ward register — active cases (May 2026)</h3>
-            <p>Hand-recorded issues; matched to API pets when name/ID aligns</p>
           </div>
           <div class="table-wrap">
             <table class="health-records-table" id="ward-register-table">
@@ -1794,6 +1793,28 @@
       return "is-good";
     }
 
+    function drawEmptyAnimalChart(canvasId, message) {
+      const canvas = document.getElementById(canvasId);
+      const wrap = canvas?.parentElement;
+      const tip = wrap?.querySelector(".animal-chart-tooltip");
+      if (!canvas || !wrap) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = wrap.clientWidth || 400;
+      const h = wrap.clientHeight || 200;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(message || "—", w / 2, h / 2);
+      if (tip) tip.style.display = "none";
+      canvas.onmousemove = null;
+      canvas.onmouseleave = null;
+    }
+
     function drawAnimalChart(canvasId, data, opts) {
       const canvas = document.getElementById(canvasId);
       const wrap = canvas?.parentElement;
@@ -1904,8 +1925,8 @@
     function drawAnimalCharts(details) {
       const norms = VITAL_NORMS[currentSpecies] || VITAL_NORMS.cattle;
       const dayLabels = details.chartLabels || TREND_DAYS;
-      const meta = details.chartMeta || [
-        { title: "Temperature trend", sub: "Last 7 days · °C" },
+      const meta = [
+        { title: "Temperature trend", sub: "Infrared (ear) · max per day · °C" },
         { title: "Heart rate trend", sub: "Last 7 days · bpm" },
         { title: "SpO₂ trend", sub: "Last 7 days · %" },
         { title: "Respiration trend", sub: "Last 7 days · rpm" },
@@ -1913,7 +1934,7 @@
       const charts = [
         {
           id: "animal-chart-temp",
-          data: details.tempTrend || details.irTrend,
+          data: details.tempTrend,
           opts: {
             color: "#dc2626",
             fill: "rgba(220, 38, 38, 0.1)",
@@ -1931,11 +1952,9 @@
           opts: {
             color: "#7c3aed",
             fill: "rgba(124, 58, 237, 0.1)",
-            targetMin: norms.temp.min,
-            targetMax: norms.temp.max,
-            suffix: "°C",
-            padMin: 0.4,
-            padMax: 0.4,
+            targetMin: norms.hr.min,
+            targetMax: norms.hr.max,
+            suffix: " bpm",
             dayLabels,
           },
         },
@@ -1945,11 +1964,9 @@
           opts: {
             color: "#0891b2",
             fill: "rgba(8, 145, 178, 0.1)",
-            targetMin: norms.temp.min,
-            targetMax: norms.temp.max,
-            suffix: "°C",
-            padMin: 0.4,
-            padMax: 0.4,
+            targetMin: norms.spo2.min,
+            targetMax: 100,
+            suffix: "%",
             dayLabels,
           },
         },
@@ -1959,11 +1976,9 @@
           opts: {
             color: "#059669",
             fill: "rgba(5, 150, 105, 0.1)",
-            targetMin: 0,
-            targetMax: 5,
-            suffix: "",
-            padMin: 0,
-            padMax: 1,
+            targetMin: norms.resp.min,
+            targetMax: norms.resp.max,
+            suffix: " rpm",
             dayLabels,
           },
         },
@@ -1974,7 +1989,8 @@
         if (head && meta[i]) {
           head.innerHTML = `<h4>${meta[i].title}</h4><span>${meta[i].sub}</span>`;
         }
-        drawAnimalChart(c.id, c.data, c.opts);
+        if (c.data?.length) drawAnimalChart(c.id, c.data, c.opts);
+        else drawEmptyAnimalChart(c.id, "—");
       });
     }
 
