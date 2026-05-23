@@ -50,6 +50,22 @@
     });
   }
 
+  function findWardForPet(pet) {
+    const regt = petRmtNo(pet);
+    if (regt !== "—") {
+      const row = WARD_REGISTER_MAY_2026.find((w) => String(w.regt).trim() === regt);
+      if (row) return row;
+    }
+    const dn = displayName(pet).toLowerCase();
+    const n = petName(pet).toLowerCase();
+    return (
+      WARD_REGISTER_MAY_2026.find((w) => {
+        const wn = w.name && w.name !== "—" ? w.name.toLowerCase() : "";
+        return wn && (wn === dn || wn === n);
+      }) || null
+    );
+  }
+
   function isPetInWard(pet) {
     const rmt = petRmtNo(pet);
     if (rmt !== "—" && WARD_REGTS.has(rmt)) return true;
@@ -315,85 +331,79 @@
   function buildWardDailyReport() {
     const dateIso = getSelectedDate();
     const dateLabel = formatDisplayDate(dateIso);
-    const times = ["07:55", "08:20", "09:10", "10:02", "11:15", "14:00"];
-    const vitals = [];
-    const treatments = [];
-    const checkups = [];
+    const totalPets = store.pets.length;
+    const takenRows = [];
 
-    WARD_REGISTER_MAY_2026.forEach((ward, i) => {
-      const pet = findPetForWardRow(ward);
-      const regt = String(ward.regt).trim();
-      const name = horseDisplayName(ward, pet);
-      const label = name !== "—" ? `Horse ${regt} · ${name}` : `Horse ${regt}`;
-      const time = times[i] || "12:00";
+    for (const pet of store.pets) {
+      if (!pet._takenOnDate) continue;
+      const regt = petRmtNo(pet);
+      const openId = petId(pet) || regt;
+      const name = horseDisplayName(null, pet);
+      const label =
+        regt !== "—" && name !== "—"
+          ? `Horse ${regt} · ${name}`
+          : regt !== "—"
+            ? `Horse ${regt}`
+            : `Horse ${petName(pet)}`;
+      const sessions = pet._sessionsOnDate || [];
+      const latest = sessions[sessions.length - 1];
+      const time = latest ? sessionTimeIst(latest) : "—";
+      const ward = findWardForPet(pet);
 
-      let vitalDetail;
+      let vitalDetail = "Device session recorded";
       let vitalTag = "Complete";
       let vitalClass = "done";
-      if (pet?._takenOnDate && pet._latestTempC != null) {
-        vitalDetail = `Temp ${formatTemp(pet._latestTempC)} · ${ward.disease}`;
-      } else if (ward.active) {
-        vitalDetail = `${ward.disease} — monitor vitals · ward active`;
-        vitalTag = "Flagged";
-        vitalClass = "flagged";
-      } else {
-        vitalDetail = `${ward.disease} — discharged ${ward.discharge || "—"}`;
+      if (pet._latestTempC != null) {
+        vitalDetail = `Temp ${formatTemp(pet._latestTempC)}`;
+        if (ward) vitalDetail += ` · ${ward.disease}`;
+        const vs = vitalsStatus(pet._latestTempC, true);
+        if (vs.label === "Critical" || vs.label === "Elevated") {
+          vitalTag = "Flagged";
+          vitalClass = "flagged";
+        }
+      } else if (ward) {
+        vitalDetail = `${ward.disease} — session on ${dateLabel}, no temperature`;
         vitalTag = "Logged";
         vitalClass = "";
       }
-      vitals.push({
-        id: regt,
+
+      takenRows.push({
+        id: openId,
         label,
         time,
         detail: vitalDetail,
-        staff: "Ravi K.",
+        staff: "Device round",
         tag: vitalTag,
         tagClass: vitalClass,
+        sortKey: latest
+          ? new Date(latest.started_at || latest.created_at || 0).getTime()
+          : 0,
       });
+    }
 
-      treatments.push({
-        id: regt,
-        label,
-        time: ["08:50", "09:40", "10:30", "11:00", "11:20", "14:30"][i] || "13:00",
-        detail: ward.active
-          ? `${ward.disease} — treatment protocol in progress (ward)`
-          : `${ward.disease} — discharge care completed`,
-        staff: "Dr. Santosh",
-        tag: ward.active ? "Active" : "Done",
-        tagClass: ward.active ? "active" : "done",
-      });
-
-      checkups.push({
-        id: regt,
-        label,
-        time: ["08:05", "09:25", "10:15", "11:00", "11:30", "13:00"][i] || "12:30",
-        detail: `Ward checkup — ${ward.disease} (${ward.active ? "active" : "discharged"})`,
-        staff: "Dr. Santosh",
-        tag: "Completed",
-        tagClass: "done",
-      });
-    });
-
-    const activeN = WARD_REGISTER_MAY_2026.filter((w) => w.active).length;
-    const dischargedN = WARD_REGISTER_MAY_2026.length - activeN;
-    const totalPets = store.pets.length || 53;
+    takenRows.sort((a, b) => a.sortKey - b.sortKey);
+    const vitals = takenRows.map(({ sortKey, ...row }) => row);
+    const treatments = [];
+    const checkups = [];
+    const n = vitals.length;
+    const lastTime = n ? vitals[n - 1].time : "—";
 
     return {
       title: "Today's Daily Report",
-      subtitle: "Stable rounds — ward register (May 2026) & device vitals",
+      subtitle: `Device vitals for ${dateLabel} (IST)`,
       dateLabel,
-      syncLabel: "Last device sync: 06:52",
+      syncLabel: totalPets ? `${totalPets} horses registered` : "Loading…",
       summaryNotes: {
-        vitals: "Ward & device sessions",
-        treatments: "Dr. Santosh · ward protocols",
-        checkups: "Clinical ward reviews",
-        completed: "Discharged + active tracked",
+        vitals: "Horses with a device session on this date",
+        treatments: "No treatment records for this date",
+        checkups: "No separate checkup records for this date",
+        completed: "Sessions completed on this date",
       },
       summary: {
-        vitals: vitals.length,
-        treatments: treatments.length,
-        checkups: checkups.length,
-        completed: dischargedN + activeN,
+        vitals: n,
+        treatments: 0,
+        checkups: 0,
+        completed: n,
       },
       vitals,
       treatments,
@@ -401,21 +411,14 @@
       other: [
         {
           id: "—",
-          label: "Ward register May 2026",
-          time: "07:15",
-          detail: `${countWardSickHorses()} horses on ward · ${activeN} active (Tejas — Dermatitis)`,
-          staff: "Supervisor",
-          tag: "Log",
-          tagClass: "",
-        },
-        {
-          id: "—",
           label: "Stable round · ARMY",
-          time: "06:52",
-          detail: `${totalPets} horses registered · morning device round`,
-          staff: "External",
-          tag: "Planned",
-          tagClass: "pending",
+          time: lastTime,
+          detail: n
+            ? `${n} horse(s) checked on ${dateLabel} · ${totalPets} registered`
+            : `No device sessions on ${dateLabel} · ${totalPets} registered`,
+          staff: n ? "Device" : "—",
+          tag: n ? "Synced" : "None",
+          tagClass: n ? "done" : "pending",
         },
       ],
     };
