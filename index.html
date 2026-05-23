@@ -55,7 +55,7 @@
 
       <nav id="sidebar-nav">
         <a class="active" href="#dashboard" data-screen="dashboard"><span class="nav-icon"><img src="assets/icons/dashboard.svg" alt="" /></span>Dashboard</a>
-        <a href="#herd" data-screen="herd"><span class="nav-icon"><img src="assets/icons/animals.svg" alt="" /></span>Animals</a>
+        <a href="#herd" data-screen="herd" id="nav-herd-link"><span class="nav-icon"><img src="assets/icons/animals.svg" alt="" /></span>Animals</a>
         <a href="#checkup" data-screen="checkup"><span class="nav-icon"><img src="assets/icons/health.svg" alt="" /></span>Health Records</a>
         <a href="#analysis" data-screen="analysis"><span class="nav-icon"><img src="assets/icons/alerts.svg" alt="" /></span>Alerts</a>
         <a href="#heat" data-screen="heat"><span class="nav-icon"><img src="assets/icons/sync.svg" alt="" /></span>Sync Data</a>
@@ -266,7 +266,7 @@
         <div class="dashboard-ops-grid">
           <article class="white-panel">
             <div class="panel-head">
-              <h3>Animals Requiring Action</h3>
+              <h3 id="dashboard-action-title">Animals Requiring Action</h3>
               <p id="queue-filter-label">Showing: All animals requiring action</p>
             </div>
             <div class="table-wrap">
@@ -274,7 +274,7 @@
                 <thead>
                   <tr>
                     <th class="species-id-head">Cow ID</th>
-                    <th>Breed</th>
+                    <th class="species-name-head">Name</th>
                     <th>Alert</th>
                     <th>Status</th>
                     <th>Severity</th>
@@ -423,6 +423,7 @@
             <thead>
               <tr>
                 <th class="species-id-head">Cow ID</th>
+                <th class="species-name-head">Name</th>
                 <th>Breed</th>
                 <th>Age</th>
                 <th>Last Check</th>
@@ -1238,9 +1239,13 @@
         addModalTitle: "Add New Horse",
         addSaveLabel: "Save Horse",
         idLabel: "Horse ID",
-        managementTitle: "Stable Management",
+        nameLabel: "Name",
+        navHerdLabel: "Horses",
+        navHerdIcon: "assets/icons/horses.svg",
+        managementTitle: "Horses List",
         recordsTitle: "Stable Health Records",
-        searchPlaceholder: "Search by Horse ID or Breed",
+        searchPlaceholder: "Search by Horse ID, Name, or Breed",
+        dashboardActionTitle: "Horses Requiring Action",
         modalImageAlt: "Selected horse",
         modalImageSrc: "assets/icons/horse-sidebar.jpg",
         sidebarImage: "assets/icons/horse-sidebar.jpg",
@@ -1379,7 +1384,7 @@
 
     const screenTitles = {
       dashboard: "DASHBOARD - OVERVIEW",
-      herd: "ANIMALS",
+      herd: "HORSES",
       checkup: "HEALTH RECORDS",
       analysis: "ALERTS",
       heat: "SYNC DATA",
@@ -1423,6 +1428,23 @@
       document.querySelectorAll(".species-id-head").forEach((head) => {
         head.textContent = config.idLabel;
       });
+      document.querySelectorAll(".species-name-head").forEach((head) => {
+        head.textContent = config.nameLabel || "Name";
+      });
+
+      const navHerd = document.getElementById("nav-herd-link");
+      if (navHerd && config.navHerdLabel) {
+        const iconWrap = navHerd.querySelector(".nav-icon");
+        const iconHtml = iconWrap ? iconWrap.outerHTML : "";
+        const iconImg = navHerd.querySelector(".nav-icon img");
+        if (iconImg && config.navHerdIcon) iconImg.src = config.navHerdIcon;
+        navHerd.innerHTML = `${iconHtml}${config.navHerdLabel}`;
+      }
+
+      const actionTitle = document.getElementById("dashboard-action-title");
+      if (actionTitle && config.dashboardActionTitle) {
+        actionTitle.textContent = config.dashboardActionTitle;
+      }
 
       filterTitles = config.filterTitles;
       herdFilterChip.textContent = filterTitles.all;
@@ -1542,7 +1564,7 @@
       dashboardActionBody.innerHTML = rows.map((row) => `
         <tr class="clickable-cattle" data-cow-id="${row.id}" data-disease="${row.disease}" data-priority="${row.priority}">
           <td>${row.id}</td>
-          <td>${row.breed}</td>
+          <td>${row.name || row.breed || "—"}</td>
           <td><span class="pill ${row.alertClass}">${row.alert}</span></td>
           <td><span class="status-pill ${row.statusClass}">${row.status}</span></td>
           <td><span class="sev-pill ${row.severityClass}">${row.severity}</span></td>
@@ -1594,6 +1616,8 @@
       pageTitle.textContent = screenTitles[screenId] || "DASHBOARD - OVERVIEW";
     }
 
+    window.setActiveScreen = setActiveScreen;
+
     navLinks.forEach((link) => {
       link.addEventListener("click", (event) => {
         event.preventDefault();
@@ -1620,10 +1644,10 @@
       rows.sort((a, b) => {
         const aId = a.children[0].textContent.trim();
         const bId = b.children[0].textContent.trim();
-        const aAge = parseInt(a.children[2].textContent, 10);
-        const bAge = parseInt(b.children[2].textContent, 10);
-        const aCheck = getCheckMinutes(a.children[3].textContent);
-        const bCheck = getCheckMinutes(b.children[3].textContent);
+        const aAge = parseInt(a.children[3].textContent, 10);
+        const bAge = parseInt(b.children[3].textContent, 10);
+        const aCheck = getCheckMinutes(a.children[4].textContent);
+        const bCheck = getCheckMinutes(b.children[4].textContent);
 
         if (mode === "id-desc") return bId.localeCompare(aId);
         if (mode === "age-asc") return aAge - bAge;
@@ -1646,8 +1670,8 @@
       herdTableBody.querySelectorAll("tr").forEach((row) => {
         const tags = (row.dataset.health || "").split(" ");
         const rowText = row.textContent.toLowerCase();
-        const rowBreed = row.children[1].textContent.trim();
-        const rowAge = parseInt(row.children[2].textContent, 10);
+        const rowBreed = row.children[2].textContent.trim();
+        const rowAge = parseInt(row.children[3].textContent, 10);
         const matchesBaseFilter = activeFilter === "all" || tags.includes(activeFilter);
         const matchesStatusFilter = statusValue === "all" || tags.includes(statusValue);
         const matchesAgeFilter = ageValue === "all" || rowAge === parseInt(ageValue, 10);
@@ -1661,6 +1685,10 @@
     }
 
     window.__applyHerdFilter = applyHerdFilter;
+    window.VetDashboardUi = {
+      updateRiskGroupCards,
+      updateDashboardActionRows,
+    };
 
     function applyQueueFilter({ disease = null, priority = null, label = getCurrentSpeciesConfig().queueDefaultLabel }) {
       queueRows.forEach((row) => {
@@ -2060,10 +2088,15 @@
 
     actionSummaryFilters.forEach((card) => {
       card.addEventListener("click", () => {
+        const label = card.querySelector("h4")?.textContent?.trim() || "Priority filter";
+        if (document.body.classList.contains("device-army") && window.VetLiveApi?.applyHerdRiskFilter) {
+          window.VetLiveApi.applyHerdRiskFilter(card.dataset.disease, label);
+          return;
+        }
         setActiveScreen("dashboard");
         applyQueueFilter({
           disease: card.dataset.disease,
-          label: card.querySelector("h4")?.textContent?.trim() || "Priority filter",
+          label,
         });
       });
     });

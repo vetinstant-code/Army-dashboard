@@ -1,4 +1,4 @@
-const CACHE_NAME = "vetinstant-dashboard-v1";
+const CACHE_NAME = "vetinstant-dashboard-v2";
 const APP_SHELL_FILES = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const APP_SHELL_FILES = [
   "./manifest.webmanifest",
   "./assets/icons/dashboard.svg",
   "./assets/icons/animals.svg",
+  "./assets/icons/horses.svg",
   "./assets/icons/health.svg",
   "./assets/icons/alerts.svg",
   "./assets/icons/sync.svg",

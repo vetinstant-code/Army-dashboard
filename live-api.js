@@ -62,6 +62,137 @@
     return "healthy";
   }
 
+  function horseDisplayName(ward, pet) {
+    if (pet) {
+      const dn = displayName(pet);
+      if (dn && dn !== "—") return dn;
+      const n = petName(pet);
+      if (n && !/^RMT\d*$/i.test(n)) return n;
+    }
+    if (ward?.name && ward.name !== "—") return ward.name;
+    return "—";
+  }
+
+  function diseaseRiskGroup(disease) {
+    const d = String(disease || "").toLowerCase();
+    if (/dermatitis|lac|wound|infection|strangles|influenza|tetanus/i.test(d)) return "infection";
+    if (/respiratory|pneumonia|asthma/i.test(d)) return "respiratory";
+    if (/colic|digestive|gut|impaction/i.test(d)) return "digestive colic";
+    if (/swelling|hock|lameness|joint|hoof|mobility|shoulder/i.test(d)) return "hoof mobility";
+    if (/heat|dehydration|stress|exertion/i.test(d)) return "environment heat-stress";
+    return "hoof mobility";
+  }
+
+  const RISK_GROUP_META = [
+    {
+      diseaseKey: "infection",
+      title: "Infection",
+      note: "Contagious and systemic infection risks",
+      icon: "assets/icons/horse-risk-infection.svg",
+      affectedLabel: "Horses affected",
+    },
+    {
+      diseaseKey: "respiratory",
+      title: "Respiratory",
+      note: "Breathing and lung-related risks",
+      icon: "assets/icons/horse-risk-respiratory.svg",
+      affectedLabel: "Horses affected",
+    },
+    {
+      diseaseKey: "digestive colic",
+      title: "Digestive / Colic",
+      note: "Gastrointestinal health and colic monitoring",
+      icon: "assets/icons/horse-risk-digestive.svg",
+      affectedLabel: "Horses affected",
+    },
+    {
+      diseaseKey: "hoof mobility",
+      title: "Hoof & Mobility",
+      note: "Hoof health and movement performance risks",
+      icon: "assets/icons/horse-risk-mobility.svg",
+      affectedLabel: "Horses affected",
+    },
+    {
+      diseaseKey: "environment heat-stress",
+      title: "Environmental Stress",
+      note: "Temperature and workload related alerts",
+      icon: "assets/icons/horse-risk-environment.svg",
+      affectedLabel: "Horses affected",
+    },
+  ];
+
+  function buildWardRiskGroups() {
+    const buckets = new Map(RISK_GROUP_META.map((m) => [m.diseaseKey, []]));
+    for (const ward of getWardHorsesByRegt()) {
+      const key = diseaseRiskGroup(ward.disease);
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(ward);
+    }
+    return buckets;
+  }
+
+  function renderWardRiskDashboard() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    const buckets = buildWardRiskGroups();
+    const cards = RISK_GROUP_META.map((meta) => {
+      const wards = buckets.get(meta.diseaseKey) || [];
+      const diseases = [...new Set(wards.map((w) => w.disease))].join(", ") || "—";
+      return {
+        ...meta,
+        diseases,
+        affected: String(wards.length),
+      };
+    });
+    global.VetDashboardUi?.updateRiskGroupCards?.(cards);
+
+    const actionRows = getWardHorsesByRegt().map((ward) => {
+      const pet = findPetForWardRow(ward);
+      const regt = String(ward.regt).trim();
+      const name = horseDisplayName(ward, pet);
+      const group = diseaseRiskGroup(ward.disease);
+      const statusClass = ward.active ? "warning" : "monitor";
+      return {
+        id: regt,
+        name,
+        breed: name,
+        alert: ward.disease,
+        alertClass: ward.active ? "red" : "purple",
+        status: ward.active ? "Active" : "Discharged",
+        statusClass,
+        severity: ward.active ? "Active case" : "Ward history",
+        severityClass: ward.active ? "sev-critical" : "sev-medium",
+        risk: group.split(" ")[0],
+        riskClass: ward.active ? "critical" : "high",
+        lastAbnormal: ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`,
+        disease: `${ward.disease.toLowerCase()} ${group}`,
+        priority: group.split(" ")[0],
+      };
+    });
+    global.VetDashboardUi?.updateDashboardActionRows?.(actionRows);
+  }
+
+  function applyHerdRiskFilter(diseaseKey, label) {
+    if (!global.VetAuth?.isLoggedIn?.()) return false;
+    renderHerdTable();
+    const body = document.querySelector("#herd-table tbody");
+    if (!body) return false;
+    const key = (diseaseKey || "").trim().toLowerCase();
+    body.querySelectorAll("tr").forEach((row) => {
+      const rg = (row.dataset.riskGroup || "").toLowerCase();
+      const isSick = (row.dataset.health || "").includes("sick");
+      const visible = isSick && (!key || rg === key);
+      row.classList.toggle("row-hidden", !visible);
+    });
+    const chip = $("herd-filter-chip");
+    if (chip) chip.textContent = label ? `${label} — ward horses` : "Sick horses";
+    if (typeof global.setActiveScreen === "function") {
+      global.setActiveScreen("herd");
+    } else {
+      document.querySelector('#sidebar-nav a[data-screen="herd"]')?.click();
+    }
+    return true;
+  }
+
   function herdHealthBadge(health, wardRow) {
     if (health === "sick" && wardRow) {
       const status = wardRow.active ? "Active" : "Discharged";
@@ -87,16 +218,18 @@
       if (petKey) matchedPetIds.add(petKey);
 
       const regt = String(ward.regt).trim();
-      const name = ward.name !== "—" ? ward.name : regt;
+      const name = horseDisplayName(ward, pet);
       const breed = pet
         ? String(pet.breed ?? pet.species ?? "—").trim() || "—"
-        : name;
+        : "—";
       const age = pet?.age != null ? String(pet.age) : "—";
       const lastCheck = ward.active ? `Adm ${ward.admission}` : `Disc ${ward.discharge || "—"}`;
       const openId = petKey || regt;
+      const riskGroup = diseaseRiskGroup(ward.disease);
 
-      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}" data-risk-group="${riskGroup}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
         <td>${regt}</td>
+        <td>${name}</td>
         <td>${breed}</td>
         <td>${age}${age !== "—" ? " yrs" : ""}</td>
         <td>${lastCheck}</td>
@@ -111,7 +244,8 @@
       const health = petHealthTag(pet);
       const regt = petRmtNo(pet);
       const label = regt !== "—" ? regt : id;
-      const breed = String(pet.breed ?? pet.species ?? displayName(pet) ?? "—").trim() || "—";
+      const name = horseDisplayName(null, pet);
+      const breed = String(pet.breed ?? pet.species ?? "—").trim() || "—";
       const age = pet.age != null ? `${pet.age} yrs` : "—";
       const lastCheck = pet._takenOnDate
         ? (pet._latestTempC != null ? `${formatTemp(pet._latestTempC)} · ${formatDisplayDate(getSelectedDate())}` : "Taken")
@@ -119,6 +253,7 @@
 
       html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${id}" data-health="${health}" data-pet-id="${id}">
         <td>${label}</td>
+        <td>${name}</td>
         <td>${breed}</td>
         <td>${age}</td>
         <td>${lastCheck}</td>
@@ -127,7 +262,7 @@
       </tr>`);
     }
 
-    body.innerHTML = html.join("") || '<tr><td colspan="6">No horses loaded.</td></tr>';
+    body.innerHTML = html.join("") || '<tr><td colspan="7">No horses loaded.</td></tr>';
     bindHerdRowActions();
   }
 
@@ -330,6 +465,7 @@
   function renderWardRegister() {
     const body = $("ward-register-body");
     if (!body) return;
+    if (global.VetAuth?.isLoggedIn?.()) renderWardRiskDashboard();
     body.innerHTML = WARD_REGISTER_MAY_2026.map((row) => {
       const status = row.active ? "Active" : "Discharged";
       const statusClass = row.active ? "high" : "";
@@ -657,6 +793,7 @@
     }
 
     renderHerdTable();
+    renderWardRiskDashboard();
   }
 
   function onCheckupScreen() {
@@ -722,6 +859,8 @@
     updateDashboardKpis,
     renderHerdTable,
     applyHerdKpiFilter,
+    applyHerdRiskFilter,
+    renderWardRiskDashboard,
   };
 
   document.addEventListener("DOMContentLoaded", () => {
