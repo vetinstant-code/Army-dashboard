@@ -306,71 +306,102 @@
     });
   }
 
-  function groupSessionsByDate(sessions) {
-    const groups = new Map();
-    for (const s of sessions || []) {
-      const d = sessionStartedDateIst(s) || "Unknown date";
-      if (!groups.has(d)) groups.set(d, []);
-      groups.get(d).push(s);
+  function renderTempGrid(readings, gridEl) {
+    const grid = gridEl || $("health-detail-temps");
+    if (!grid) return;
+    if (!readings?.length) {
+      grid.innerHTML = "<p>No temperature readings for this session.</p>";
+      return;
     }
-    for (const [, list] of groups) {
-      list.sort((a, b) => new Date(a.started_at || a.created_at || 0) - new Date(b.started_at || b.created_at || 0));
-    }
-    return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    grid.innerHTML = readings
+      .map((r) => {
+        const sensor = r.sensor_type || r.type || "reading";
+        const num = r.reading_number != null ? `#${r.reading_number}` : "";
+        return `<article class="health-temp-card">
+          <p>${sensor} ${num}</p>
+          <strong>${formatTemp(r.temperature_value)}</strong>
+        </article>`;
+      })
+      .join("");
   }
 
-  function showPetDetail(id) {
+  async function loadSessionTemperatures(pet, session) {
+    const sid = String(session?.id ?? session?.exam_session_id ?? "").trim();
+    if (!sid) return [];
+    if (!pet._tempCache) pet._tempCache = {};
+    if (pet._tempCache[sid]) return pet._tempCache[sid];
+    const raw = await store.client.petTemperatureBySession(petId(pet), sid);
+    const readings = normalizeTemperature(raw);
+    pet._tempCache[sid] = readings;
+    return readings;
+  }
+
+  async function selectDetailSession(pet, session, index, sessionsOnDate) {
+    const picker = $("health-session-picker");
+    const dateIso = getSelectedDate();
+    const time = sessionTimeIst(session);
+    const meta = $("health-detail-meta");
+    if (meta) {
+      meta.textContent = `RMT No. ${petRmtNo(pet)} · ${formatDisplayDate(dateIso)} · Session ${index + 1} of ${sessionsOnDate.length}${time ? ` · ${time}` : ""}`;
+    }
+    picker?.querySelectorAll(".health-session-btn").forEach((btn, i) => {
+      btn.classList.toggle("active", i === index);
+      btn.setAttribute("aria-selected", i === index ? "true" : "false");
+    });
+    const grid = $("health-detail-temps");
+    if (grid) grid.innerHTML = "<p class=\"health-loading\">Loading temperatures…</p>";
+    try {
+      const readings = await loadSessionTemperatures(pet, session);
+      renderTempGrid(readings, grid);
+    } catch (e) {
+      if (grid) grid.innerHTML = `<p>Could not load temperatures: ${e.message || e}</p>`;
+    }
+  }
+
+  async function showPetDetail(id) {
     const pet = store.pets.find((p) => petId(p) === id);
     const panel = $("health-detail-panel");
+    const picker = $("health-session-picker");
     if (!pet || !panel) return;
 
     const dateIso = getSelectedDate();
     panel.hidden = false;
-    $("health-detail-title").textContent = `${displayName(pet) !== "—" ? displayName(pet) : petName(pet)} — temperature`;
-    $("health-detail-meta").textContent = `RMT No. ${petRmtNo(pet)} · ${formatDisplayDate(dateIso)} · Sessions ${pet._sessionLabel || "—"}`;
+    pet._tempCache = {};
 
-    const temps = pet._temperatures || [];
-    const grid = $("health-detail-temps");
-    if (grid) {
-      if (!pet._takenOnDate) {
-        grid.innerHTML = "<p>Not taken on this date.</p>";
-      } else if (!temps.length) {
-        grid.innerHTML = "<p>No temperature readings for this date's session.</p>";
-      } else {
-        grid.innerHTML = temps
-          .map((r) => {
-            const sensor = r.sensor_type || r.type || "reading";
-            const num = r.reading_number != null ? `#${r.reading_number}` : "";
-            return `<article class="health-temp-card">
-              <p>${sensor} ${num}</p>
-              <strong>${formatTemp(r.temperature_value)}</strong>
-            </article>`;
-          })
-          .join("");
-      }
+    const titleName = displayName(pet) !== "—" ? displayName(pet) : petName(pet);
+    $("health-detail-title").textContent = `${titleName} — temperature`;
+
+    const sessionsOnDate = pet._sessionsOnDate || [];
+
+    if (!pet._takenOnDate || !sessionsOnDate.length) {
+      if (picker) picker.innerHTML = "";
+      $("health-detail-meta").textContent = `RMT No. ${petRmtNo(pet)} · ${formatDisplayDate(dateIso)}`;
+      renderTempGrid([], $("health-detail-temps"));
+      const grid = $("health-detail-temps");
+      if (grid) grid.innerHTML = "<p>Not taken on this date.</p>";
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
     }
 
-    const ul = $("health-detail-sessions");
-    if (ul) {
-      const groups = groupSessionsByDate(pet._sessions);
-      if (!groups.length) {
-        ul.innerHTML = "<li>No exam sessions</li>";
-      } else {
-        ul.innerHTML = groups
-          .map(([date, list]) => {
-            const isSelected = date === dateIso;
-            const items = list
-              .map((s, i) => {
-                const time = sessionTimeIst(s);
-                const highlight = isSelected ? " class=\"session-on-selected-date\"" : "";
-                return `<li${highlight}>Session ${i + 1}${time ? ` · ${time}` : ""}</li>`;
-              })
-              .join("");
-            return `<li class="session-date-group"><strong>${formatDisplayDate(date)}</strong><ul>${items}</ul></li>`;
-          })
-          .join("");
-      }
+    if (picker) {
+      picker.innerHTML = sessionsOnDate
+        .map((session, i) => {
+          const time = sessionTimeIst(session);
+          return `<button type="button" class="health-session-btn${i === 0 ? " active" : ""}" role="tab" aria-selected="${i === 0 ? "true" : "false"}" data-session-index="${i}">
+            Session ${i + 1}${time ? `<small>${time}</small>` : ""}
+          </button>`;
+        })
+        .join("");
+
+      picker.querySelectorAll(".health-session-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.sessionIndex);
+          selectDetailSession(pet, sessionsOnDate[idx], idx, sessionsOnDate);
+        });
+      });
     }
+
+    await selectDetailSession(pet, sessionsOnDate[0], 0, sessionsOnDate);
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
