@@ -18,6 +18,15 @@
     }
   }
 
+  /** Unique Regt No. in May 2026 ward register (dashboard Sick KPI). */
+  function countWardSickHorses() {
+    const regts = new Set();
+    for (const row of WARD_REGISTER_MAY_2026) {
+      if (row.regt) regts.add(String(row.regt).trim());
+    }
+    return regts.size;
+  }
+
   const HORSE_TEMP = { min: 37.2, max: 38.6 };
 
   const istDateFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -479,6 +488,7 @@
       const raw = await client.listPets();
       store.pets = global.VetApiNormalize.normalizePets(raw).map((p) => ({ ...p }));
       setTotalHorseCount(store.pets.length);
+      updateDashboardKpis();
       await applyDateFilter(getSelectedDate());
     } catch (e) {
       store.error = e.message || String(e);
@@ -491,25 +501,19 @@
   }
 
   function updateDashboardKpis() {
-    if (!store.pets.length) return;
-
     const total = store.pets.length;
+    if (!total) return;
+
     setTotalHorseCount(total);
 
-    let healthy = 0;
-    let notTaken = 0;
-    let sick = 0;
-    let taken = 0;
+    const wardSick = countWardSickHorses();
+    const healthy = Math.max(0, total - wardSick);
 
+    let notTaken = 0;
+    let taken = 0;
     for (const p of store.pets) {
-      if (!p._takenOnDate) {
-        notTaken++;
-        continue;
-      }
-      taken++;
-      const vs = vitalsStatus(p._latestTempC, true);
-      if (vs.label === "Critical" || vs.label === "Elevated") sick++;
-      else if (vs.label === "Stable") healthy++;
+      if (!p._takenOnDate) notTaken++;
+      else taken++;
     }
 
     const elHealthy = $("kpi-healthy-count");
@@ -517,12 +521,12 @@
     const elSick = $("kpi-sick-count");
     if (elHealthy) elHealthy.textContent = String(healthy);
     if (elRisk) elRisk.textContent = String(notTaken);
-    if (elSick) elSick.textContent = String(sick);
+    if (elSick) elSick.textContent = String(wardSick);
 
     const dateIso = getSelectedDate();
     const sub = $("health-records-status");
     if (sub) {
-      sub.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken · ${total} horses registered`;
+      sub.textContent = `${formatDisplayDate(dateIso)} · ${taken} taken · ${notTaken} not taken · ${total} horses · ${wardSick} in ward register`;
     }
   }
 
@@ -580,6 +584,8 @@
     setTotalHorseCount,
     bootstrapIfLoggedIn,
     resetStore,
+    countWardSickHorses,
+    updateDashboardKpis,
   };
 
   document.addEventListener("DOMContentLoaded", () => {
