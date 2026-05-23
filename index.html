@@ -1651,15 +1651,33 @@
       const breedValue = herdBreedFilter?.value || "all";
       const activeFilter = filter || "all";
 
+      const army = document.body.classList.contains("device-army");
+      const ageBandMatch = window.VetLiveApi?.ageMatchesBand;
+
       herdTableBody.querySelectorAll("tr").forEach((row) => {
         const tags = (row.dataset.health || "").split(" ");
         const rowText = row.textContent.toLowerCase();
-        const rowBreed = row.children[2].textContent.trim();
-        const rowAge = parseInt(row.children[3].textContent, 10);
-        const matchesBaseFilter = activeFilter === "all" || tags.includes(activeFilter);
-        const matchesStatusFilter = statusValue === "all" || tags.includes(statusValue);
-        const matchesAgeFilter = ageValue === "all" || rowAge === parseInt(ageValue, 10);
-        const matchesBreedFilter = breedValue === "all" || rowBreed === breedValue;
+        const rowBreed = (row.dataset.breed || row.children[2]?.textContent || "").trim();
+        const rowAge =
+          row.dataset.age !== undefined && row.dataset.age !== ""
+            ? parseInt(row.dataset.age, 10)
+            : parseInt(row.children[3]?.textContent, 10);
+        let matchesBaseFilter = activeFilter === "all" || tags.includes(activeFilter);
+        if (army && activeFilter === "at-risk") {
+          matchesBaseFilter = row.dataset.noVitals === "1";
+        }
+        let matchesStatusFilter = statusValue === "all" || tags.includes(statusValue);
+        if (army && statusValue === "at-risk") {
+          matchesStatusFilter = row.dataset.noVitals === "1";
+        }
+        const matchesAgeFilter =
+          ageValue === "all" ||
+          (army && ageBandMatch
+            ? ageBandMatch(rowAge, ageValue)
+            : rowAge === parseInt(ageValue, 10));
+        const matchesBreedFilter =
+          breedValue === "all" ||
+          rowBreed.localeCompare(breedValue, undefined, { sensitivity: "base" }) === 0;
         const matchesSearch = !searchValue || rowText.includes(searchValue);
         const visible = matchesBaseFilter && matchesStatusFilter && matchesAgeFilter && matchesBreedFilter && matchesSearch;
         row.classList.toggle("row-hidden", !visible);

@@ -58,8 +58,54 @@
 
   function petHealthTag(pet) {
     if (isPetInWard(pet)) return "sick";
-    if (!pet._takenOnDate) return "at-risk";
     return "healthy";
+  }
+
+  function petAgeYears(pet) {
+    const n = Number(pet?.age);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function ageMatchesBand(ageYears, band) {
+    if (!band || band === "all") return true;
+    if (ageYears == null) return false;
+    if (band === "3-6") return ageYears >= 3 && ageYears <= 6;
+    if (band === "7-10") return ageYears >= 7 && ageYears <= 10;
+    if (band === "11-14") return ageYears >= 11 && ageYears <= 14;
+    if (band === "15-18") return ageYears >= 15 && ageYears <= 18;
+    if (band === "19+") return ageYears >= 19;
+    return String(ageYears) === String(band);
+  }
+
+  function populateHerdFilters() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    const ageSel = document.getElementById("herd-age-filter");
+    if (ageSel) {
+      ageSel.innerHTML = `
+        <option value="all">All Age</option>
+        <option value="3-6">3 – 6 years</option>
+        <option value="7-10">7 – 10 years</option>
+        <option value="11-14">11 – 14 years</option>
+        <option value="15-18">15 – 18 years</option>
+        <option value="19+">19+ years</option>
+      `;
+    }
+    const breedSel = document.getElementById("herd-breed-filter");
+    if (breedSel) {
+      const breeds = [
+        ...new Set(
+          store.pets
+            .map((p) => String(p.breed ?? p.species ?? "").trim())
+            .filter(Boolean)
+        ),
+      ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      breedSel.innerHTML =
+        '<option value="all">All Breed</option>' +
+        breeds.map((b) => `<option value="${b.replace(/"/g, "&quot;")}">${b}</option>`).join("");
+    }
+    const statusSel = document.getElementById("herd-status-filter");
+    const atRiskOpt = statusSel?.querySelector('option[value="at-risk"]');
+    if (atRiskOpt) atRiskOpt.textContent = "No check today";
   }
 
   function horseDisplayName(ward, pet) {
@@ -398,7 +444,6 @@
       const cls = wardRow.active ? "high" : "muted";
       return `<span class="badge ${cls}">${wardRow.disease} · ${status}</span>`;
     }
-    if (health === "at-risk") return '<span class="badge warn">Not taken</span>';
     if (health === "healthy") return '<span class="badge">Healthy</span>';
     return '<span class="badge heat">Heat</span>';
   }
@@ -427,7 +472,8 @@
       const riskGroup = diseaseRiskGroup(ward.disease);
       const wardDisKey = wardDiseaseKey(ward.disease);
 
-      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}" data-risk-group="${riskGroup}" data-ward-disease="${wardDisKey}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
+      const ageNum = petAgeYears(pet);
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${openId}" data-health="sick" data-regt="${regt}" data-risk-group="${riskGroup}" data-ward-disease="${wardDisKey}" data-age="${ageNum ?? ""}" data-breed="${breed.replace(/"/g, "")}"${petKey ? ` data-pet-id="${petKey}"` : ""}>
         <td>${regt}</td>
         <td>${name}</td>
         <td>${breed}</td>
@@ -451,7 +497,9 @@
         ? (pet._latestTempC != null ? `${formatTemp(pet._latestTempC)} · ${formatDisplayDate(getSelectedDate())}` : "Taken")
         : "Not taken";
 
-      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${id}" data-health="${health}" data-pet-id="${id}">
+      const ageNum = petAgeYears(pet);
+      const noVitals = !pet._takenOnDate;
+      html.push(`<tr class="clickable-cattle herd-row-live" data-cow-id="${id}" data-health="${health}" data-pet-id="${id}" data-age="${ageNum ?? ""}" data-breed="${breed.replace(/"/g, "")}" data-no-vitals="${noVitals ? "1" : "0"}">
         <td>${label}</td>
         <td>${name}</td>
         <td>${breed}</td>
@@ -464,6 +512,7 @@
 
     body.innerHTML = html.join("") || '<tr><td colspan="7">No horses loaded.</td></tr>';
     bindHerdRowActions();
+    populateHerdFilters();
   }
 
   function bindHerdRowActions() {
@@ -756,6 +805,7 @@
     if (diseaseSub) diseaseSub.textContent = "Ward cases by condition — click to filter list";
     const riskNote = document.getElementById("risk-groups-queue-note");
     if (riskNote) riskNote.textContent = "Click a category to filter the action list";
+    populateHerdFilters();
   }
 
   function setTotalHorseCount(count) {
@@ -1070,6 +1120,8 @@
     renderWardRiskDashboard,
     applyHerdDiseaseFilter,
     applyWardActionFilter,
+    populateHerdFilters,
+    ageMatchesBand,
     renderWardDiseaseDistribution,
     renderWardDailyReport,
     openHorseDetail,

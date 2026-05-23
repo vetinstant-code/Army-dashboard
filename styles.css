@@ -1123,9 +1123,9 @@ button {
   gap: 12px;
 }
 
-.dashboard-ops-grid .disease-graph-layout,
-.dashboard-ops-grid .donut-wrap {
-  grid-template-columns: 1fr;
+.dashboard-ops-grid .disease-graph-layout {
+  display: block;
+  padding: 12px;
 }
 
 .dashboard-ops-grid .disease-donut {
@@ -1140,8 +1140,13 @@ button {
 }
 
 .dashboard-ops-grid .donut-wrap {
-  grid-template-columns: 168px 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  width: 100%;
+  grid-template-columns: unset;
 }
 
 .dashboard-ops-grid .panel-head {
@@ -1167,16 +1172,32 @@ button {
   vertical-align: middle;
 }
 
-.dashboard-ops-grid .data-table td .pill,
+.dashboard-ops-grid .data-table td .pill {
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  vertical-align: middle;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.dashboard-ops-grid .data-table td:nth-child(3) {
+  min-width: 9.5rem;
+}
+
+.dashboard-ops-grid .data-table td:nth-child(3) .pill {
+  white-space: nowrap;
+}
+
 .dashboard-ops-grid .data-table td .status-pill,
 .dashboard-ops-grid .data-table td .sev-pill,
 .dashboard-ops-grid .data-table td .risk-pill {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
+  width: max-content;
   max-width: 100%;
-  white-space: normal;
-  line-height: 1.25;
-  word-break: break-word;
+  vertical-align: middle;
+  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .dashboard-ops-grid .donut-center strong,
@@ -1189,8 +1210,19 @@ button {
 }
 
 .dashboard-ops-grid .donut-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 12px;
-  gap: 4px;
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto;
+  grid-template-columns: unset;
+}
+
+.dashboard-ops-grid .donut-labels li {
+  width: 100%;
 }
 
 #dashboard-action-body tr.row-hidden {
@@ -2278,6 +2310,17 @@ td {
 
 #herd-table tbody td {
   color: #2f4356;
+}
+
+#herd-table tbody td:nth-child(6) {
+  min-width: 11rem;
+}
+
+#herd-table tbody td .badge {
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1.3;
+  vertical-align: middle;
 }
 
 #herd-table .mini:hover {
