@@ -258,7 +258,7 @@
         detail: ward.active
           ? `${ward.disease} — treatment protocol in progress (ward)`
           : `${ward.disease} — discharge care completed`,
-        staff: "Dr. Nair",
+        staff: "Dr. Santosh",
         tag: ward.active ? "Active" : "Done",
         tagClass: ward.active ? "active" : "done",
       });
@@ -268,7 +268,7 @@
         label,
         time: ["08:05", "09:25", "10:15", "11:00", "11:30", "13:00"][i] || "12:30",
         detail: `Ward checkup — ${ward.disease} (${ward.active ? "active" : "discharged"})`,
-        staff: "Dr. Nair",
+        staff: "Dr. Santosh",
         tag: "Completed",
         tagClass: "done",
       });
@@ -285,7 +285,7 @@
       syncLabel: "Last device sync: 06:52",
       summaryNotes: {
         vitals: "Ward & device sessions",
-        treatments: "Dr. Nair · ward protocols",
+        treatments: "Dr. Santosh · ward protocols",
         checkups: "Clinical ward reviews",
         completed: "Discharged + active tracked",
       },
