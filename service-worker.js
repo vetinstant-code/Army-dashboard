@@ -1,4 +1,4 @@
-const CACHE_NAME = "vetinstant-dashboard-v8";
+const CACHE_NAME = "vetinstant-dashboard-v9";
 const APP_SHELL_FILES = [
   "./",
   "./index.html",
@@ -51,6 +51,14 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+  if (url.pathname.endsWith(".js")) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

@@ -329,13 +329,14 @@
   }
 
   function buildWardDailyReport() {
-    const dateIso = getSelectedDate();
+    const dateIso = todayIsoIst();
     const dateLabel = formatDisplayDate(dateIso);
     const totalPets = store.pets.length;
     const takenRows = [];
 
     for (const pet of store.pets) {
-      if (!pet._takenOnDate) continue;
+      const onDate = sessionsForDate(pet._sessions || [], dateIso);
+      if (!onDate.length) continue;
       const regt = petRmtNo(pet);
       const openId = petId(pet) || regt;
       const name = horseDisplayName(null, pet);
@@ -345,18 +346,22 @@
           : regt !== "—"
             ? `Horse ${regt}`
             : `Horse ${petName(pet)}`;
-      const sessions = pet._sessionsOnDate || [];
-      const latest = sessions[sessions.length - 1];
+      const latest = onDate[onDate.length - 1];
       const time = latest ? sessionTimeIst(latest) : "—";
       const ward = findWardForPet(pet);
+      const latestSid = String(latest?.id ?? latest?.exam_session_id ?? "").trim();
+      const tempC =
+        store.selectedDate === dateIso && pet._detailSessionId === latestSid
+          ? pet._latestTempC
+          : null;
 
       let vitalDetail = "Device session recorded";
       let vitalTag = "Complete";
       let vitalClass = "done";
-      if (pet._latestTempC != null) {
-        vitalDetail = `Temp ${formatTemp(pet._latestTempC)}`;
+      if (tempC != null) {
+        vitalDetail = `Temp ${formatTemp(tempC)}`;
         if (ward) vitalDetail += ` · ${ward.disease}`;
-        const vs = vitalsStatus(pet._latestTempC, true);
+        const vs = vitalsStatus(tempC, true);
         if (vs.label === "Critical" || vs.label === "Elevated") {
           vitalTag = "Flagged";
           vitalClass = "flagged";
@@ -427,6 +432,16 @@
   function renderWardDailyReport() {
     if (!global.VetAuth?.isLoggedIn?.()) return;
     global.VetDashboardUi?.updateDailyReport?.(buildWardDailyReport());
+  }
+
+  async function refreshTodayDashboard() {
+    if (!global.VetAuth?.isLoggedIn?.()) return;
+    syncHealthDateToTodayIst();
+    if (store.pets.length) {
+      await applyDateFilter(store.selectedDate);
+    } else {
+      renderWardDailyReport();
+    }
   }
 
   function applyHerdDiseaseFilter(diseaseKey, label) {
@@ -569,16 +584,25 @@
   }
 
   function todayIso() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return todayIsoIst();
+  }
+
+  /** Calendar today in India — matches exam session dates from the API. */
+  function todayIsoIst() {
+    return istDateFormatter.format(new Date());
+  }
+
+  function syncHealthDateToTodayIst() {
+    const t = todayIsoIst();
+    store.selectedDate = t;
+    const input = $("health-records-date");
+    if (input) input.value = t;
+    return t;
   }
 
   function getSelectedDate() {
     const input = $("health-records-date");
-    const v = (input?.value || store.selectedDate || todayIso()).trim();
+    const v = (input?.value || store.selectedDate || todayIsoIst()).trim();
     store.selectedDate = v;
     if (input && input.value !== v) input.value = v;
     return v;
@@ -1015,8 +1039,9 @@
       const raw = await client.listPets();
       store.pets = global.VetApiNormalize.normalizePets(raw).map((p) => ({ ...p }));
       setTotalHorseCount(store.pets.length);
+      syncHealthDateToTodayIst();
+      await applyDateFilter(store.selectedDate);
       updateDashboardKpis();
-      await applyDateFilter(getSelectedDate());
     } catch (e) {
       store.error = e.message || String(e);
       console.error("Live API:", e);
@@ -1084,6 +1109,24 @@
     });
 
     if (location.hash === "#checkup") onCheckupScreen();
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible" || !global.VetAuth?.isLoggedIn?.()) return;
+      const today = todayIsoIst();
+      if (store.selectedDate !== today) refreshTodayDashboard();
+      else renderWardDailyReport();
+    });
+
+    const prevSetActiveScreen = global.setActiveScreen;
+    global.setActiveScreen = function (screenId) {
+      if (typeof prevSetActiveScreen === "function") prevSetActiveScreen(screenId);
+      else {
+        document.querySelectorAll(".screen").forEach((s) => {
+          s.classList.toggle("active", s.id === screenId);
+        });
+      }
+      if (screenId === "dashboard") refreshTodayDashboard();
+    };
   }
 
   function bootstrapIfLoggedIn() {
@@ -1127,6 +1170,8 @@
     ageMatchesBand,
     renderWardDiseaseDistribution,
     renderWardDailyReport,
+    refreshTodayDashboard,
+    todayIsoIst,
     openHorseDetail,
     updateHealthRecordsSummary,
     roundTempC,
