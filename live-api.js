@@ -5,7 +5,7 @@
   const WARD_REGISTER_MAY_2026 = [
     { regt: "7806", name: "Rustem", disease: "Swelling L/H", admission: "02/05/26", discharge: "08/05/26", active: false },
     { regt: "0958", name: "—", disease: "Swelling L/Hock", admission: "05/05/26", discharge: "11/05/26", active: false },
-    { regt: "0591", name: "—", disease: "Wd Lac Lt shoulder", admission: "10/05/26", discharge: "15/05/26", active: false },
+    { regt: "0591", name: "—", disease: "Wound laceration — left shoulder", admission: "10/05/26", discharge: "15/05/26", active: false },
     { regt: "7471", name: "Tejas", disease: "Swelling L/H", admission: "13/05/26", discharge: "19/05/26", active: false },
     { regt: "25126", name: "Gladiator", disease: "Dermatitis", admission: "18/05/26", discharge: "24/05/26", active: false },
     { regt: "7471", name: "Tejas", disease: "Dermatitis", admission: "23/05/26", discharge: "", active: true },
@@ -21,6 +21,17 @@
   const WARD_REGTS = new Set(
     WARD_REGISTER_MAY_2026.map((row) => String(row.regt || "").trim()).filter(Boolean)
   );
+
+  /** Full labels for ward condition text (abbreviations → readable). */
+  function conditionDisplayLabel(text) {
+    const t = String(text || "").trim();
+    if (!t) return "—";
+    const lower = t.toLowerCase().replace(/\s+/g, " ");
+    if (lower === "wd lac lt shoulder" || lower.includes("wd lac lt")) {
+      return "Wound laceration — left shoulder";
+    }
+    return t;
+  }
 
   /** Unique Regt No. in May 2026 ward register (dashboard Sick KPI). */
   function countWardSickHorses() {
@@ -198,7 +209,8 @@
     const buckets = buildWardRiskGroups();
     const cards = RISK_GROUP_META.map((meta) => {
       const wards = buckets.get(meta.diseaseKey) || [];
-      const diseases = [...new Set(wards.map((w) => w.disease))].join(", ") || "—";
+      const diseases =
+        [...new Set(wards.map((w) => conditionDisplayLabel(w.disease)))].join(", ") || "—";
       return {
         ...meta,
         diseases,
@@ -217,7 +229,7 @@
         id: regt,
         name,
         breed: name,
-        alert: ward.disease,
+        alert: conditionDisplayLabel(ward.disease),
         alertClass: ward.active ? "red" : "purple",
         status: ward.active ? "Active" : "Discharged",
         statusClass,
@@ -299,7 +311,8 @@
   function buildWardDiseaseDistribution() {
     const counts = new Map();
     for (const row of WARD_REGISTER_MAY_2026) {
-      counts.set(row.disease, (counts.get(row.disease) || 0) + 1);
+      const label = conditionDisplayLabel(row.disease);
+      counts.set(label, (counts.get(label) || 0) + 1);
     }
     const total = WARD_REGISTER_MAY_2026.length;
     const palette = [
@@ -360,14 +373,14 @@
       let vitalClass = "done";
       if (tempC != null) {
         vitalDetail = `Temp ${formatTemp(tempC)}`;
-        if (ward) vitalDetail += ` · ${ward.disease}`;
+        if (ward) vitalDetail += ` · ${conditionDisplayLabel(ward.disease)}`;
         const vs = vitalsStatus(tempC, true);
         if (vs.label === "Critical" || vs.label === "Elevated") {
           vitalTag = "Flagged";
           vitalClass = "flagged";
         }
       } else if (ward) {
-        vitalDetail = `${ward.disease} — session on ${dateLabel}, no temperature`;
+        vitalDetail = `${conditionDisplayLabel(ward.disease)} — session on ${dateLabel}, no temperature`;
         vitalTag = "Logged";
         vitalClass = "";
       }
@@ -460,7 +473,7 @@
     if (health === "sick" && wardRow) {
       const status = wardRow.active ? "Active" : "Discharged";
       const cls = wardRow.active ? "high" : "muted";
-      return `<span class="badge ${cls}">${wardRow.disease} · ${status}</span>`;
+      return `<span class="badge ${cls}">${conditionDisplayLabel(wardRow.disease)} · ${status}</span>`;
     }
     if (health === "healthy") return '<span class="badge">Healthy</span>';
     return '<span class="badge heat">Heat</span>';
@@ -755,7 +768,7 @@
       return `<tr class="${row.active ? "ward-row-active" : ""}">
         <td>${row.regt}</td>
         <td>${name}</td>
-        <td>${row.disease}</td>
+        <td>${conditionDisplayLabel(row.disease)}</td>
         <td>${row.admission}</td>
         <td>${row.discharge || "—"}</td>
         <td>${badgeHtml(status, statusClass)}</td>
@@ -962,9 +975,12 @@
         age: "—",
         statusLabel: ward.active ? "Active" : "Discharged",
         statusClass: ward.active ? "crit" : "",
-        resultTitle: ward.disease,
+        resultTitle: conditionDisplayLabel(ward.disease),
         resultNote: `Ward admission ${ward.admission}`,
-        vitals: [`Condition: ${ward.disease}`, `Status: ${ward.active ? "Active" : "Discharged"}`],
+        vitals: [
+          `Condition: ${conditionDisplayLabel(ward.disease)}`,
+          `Status: ${ward.active ? "Active" : "Discharged"}`,
+        ],
         parsed: { temp: null, hr: null, spo2: null, resp: null, activity: "—" },
         chartLabels: [],
         tempTrend: [],
@@ -988,15 +1004,17 @@
       age: pet.age != null ? `${pet.age} yrs` : "—",
       statusLabel: w ? (w.active ? "Active ward" : "Discharged") : vs.label,
       statusClass: w?.active || vs.class === "high" ? "crit" : vs.class === "warn" ? "risk" : "",
-      resultTitle: w?.disease || vs.label,
+      resultTitle: w ? conditionDisplayLabel(w.disease) : vs.label,
       resultNote: w
-        ? `Ward: ${w.disease} · ${w.active ? "Active" : "Discharged"}`
+        ? `Ward: ${conditionDisplayLabel(w.disease)} · ${w.active ? "Active" : "Discharged"}`
         : "Stable health record",
-      activeAlert: w?.active ? `${w.disease} — active ward case` : "No active ward alert",
+      activeAlert: w?.active
+        ? `${conditionDisplayLabel(w.disease)} — active ward case`
+        : "No active ward alert",
       lastVitalsAt: lastTemp != null ? formatDisplayDate(getSelectedDate()) : "Not taken yet",
       vitals: [
         lastTemp != null ? `Temperature (last taken): ${formatTemp(lastTemp)}` : "Temperature: not taken",
-        w ? `Ward: ${w.disease}` : "",
+        w ? `Ward: ${conditionDisplayLabel(w.disease)}` : "",
       ].filter(Boolean),
       parsed: {
         temp: lastTemp != null ? roundTempC(lastTemp) : null,
