@@ -1606,6 +1606,10 @@
       });
 
       pageTitle.textContent = screenTitles[screenId] || "DASHBOARD - OVERVIEW";
+
+      if (screenId === "dashboard" && document.body.classList.contains("device-army")) {
+        window.VetLiveApi?.refreshTodayDashboard?.();
+      }
     }
 
     window.setActiveScreen = setActiveScreen;

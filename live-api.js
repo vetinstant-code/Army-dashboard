@@ -1117,16 +1117,6 @@
       else renderWardDailyReport();
     });
 
-    const prevSetActiveScreen = global.setActiveScreen;
-    global.setActiveScreen = function (screenId) {
-      if (typeof prevSetActiveScreen === "function") prevSetActiveScreen(screenId);
-      else {
-        document.querySelectorAll(".screen").forEach((s) => {
-          s.classList.toggle("active", s.id === screenId);
-        });
-      }
-      if (screenId === "dashboard") refreshTodayDashboard();
-    };
   }
 
   function bootstrapIfLoggedIn() {
