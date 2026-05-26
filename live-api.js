@@ -5,7 +5,7 @@
   const WARD_REGISTER_MAY_2026 = [
     { regt: "7806", name: "Rustem", disease: "Swelling L/H", admission: "02/05/26", discharge: "08/05/26", active: false },
     { regt: "0958", name: "—", disease: "Swelling L/Hock", admission: "05/05/26", discharge: "11/05/26", active: false },
-    { regt: "0591", name: "—", disease: "Wound laceration — left shoulder", admission: "10/05/26", discharge: "15/05/26", active: false },
+    { regt: "0591", name: "—", disease: "Wound Lacerated — Left Shoulder", admission: "10/05/26", discharge: "15/05/26", active: false },
     { regt: "7471", name: "Tejas", disease: "Swelling L/H", admission: "13/05/26", discharge: "19/05/26", active: false },
     { regt: "25126", name: "Gladiator", disease: "Dermatitis", admission: "18/05/26", discharge: "24/05/26", active: false },
     { regt: "7471", name: "Tejas", disease: "Dermatitis", admission: "23/05/26", discharge: "", active: true },
@@ -28,7 +28,7 @@
     if (!t) return "—";
     const lower = t.toLowerCase().replace(/\s+/g, " ");
     if (lower === "wd lac lt shoulder" || lower.includes("wd lac lt")) {
-      return "Wound laceration — left shoulder";
+      return "Wound Lacerated — Left Shoulder";
     }
     return t;
   }
