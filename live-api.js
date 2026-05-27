@@ -341,30 +341,90 @@
     global.VetDashboardUi?.updateDiseaseDistribution?.(buildWardDiseaseDistribution());
   }
 
-  function buildWardDailyReport() {
+  async function fetchDailyPetsForDate(dateIso) {
+    if (!store.client) throw new Error("API client not ready");
+    if (store.dailyPetsCacheDate === dateIso && store.dailyPetsCache) {
+      return store.dailyPetsCache;
+    }
+    const raw = await store.client.dailyPets(dateIso);
+    const pets = Array.isArray(raw?.pets) ? raw.pets : [];
+    store.dailyPetsCache = {
+      date: String(raw?.date || dateIso),
+      pet_count: Number(raw?.pet_count ?? pets.length),
+      pets,
+    };
+    store.dailyPetsCacheDate = dateIso;
+    return store.dailyPetsCache;
+  }
+
+  function findPetByDailyEntry(entry) {
+    const pid = String(entry.pet_id || entry.id || "").trim();
+    if (pid) {
+      const hit = store.pets.find((p) => petId(p) === pid);
+      if (hit) return hit;
+    }
+    const name = String(entry.pet_name || entry.name || "").trim().toLowerCase();
+    if (!name) return null;
+    return (
+      store.pets.find((p) => {
+        const n = petName(p).toLowerCase();
+        const d = displayName(p).toLowerCase();
+        return n === name || d === name;
+      }) || null
+    );
+  }
+
+  async function buildWardDailyReportAsync() {
     const dateIso = todayIsoIst();
     const dateLabel = formatDisplayDate(dateIso);
     const totalPets = store.pets.length;
     const takenRows = [];
+    let dailyList = [];
 
-    for (const pet of store.pets) {
+    if (store.client) {
+      try {
+        const payload = await fetchDailyPetsForDate(dateIso);
+        dailyList = payload.pets || [];
+      } catch (e) {
+        console.warn("daily-pets API:", e);
+      }
+    }
+
+    const entries =
+      dailyList.length > 0
+        ? dailyList
+        : store.pets
+            .filter((p) => sessionsForDate(p._sessions || [], dateIso).length > 0)
+            .map((p) => ({ pet_id: petId(p), pet_name: petName(p) }));
+
+    for (const entry of entries) {
+      const apiName = String(entry.pet_name || entry.name || "").trim();
+      let pet = findPetByDailyEntry(entry);
+      const pid = String(entry.pet_id || entry.id || "").trim();
+      if (!pet && pid) {
+        pet = { id: pid, pet_id: pid, name: apiName || "Unknown", pet_name: apiName };
+      }
+      if (!pet) continue;
+
+      await loadSessionsForPet(pet);
+      await applyDateToPet(pet, dateIso);
+
       const onDate = sessionsForDate(pet._sessions || [], dateIso);
-      if (!onDate.length) continue;
+      const latest = onDate.length ? onDate[onDate.length - 1] : null;
       const regt = petRmtNo(pet);
       const openId = petId(pet) || regt;
-      const name = horseDisplayName(null, pet);
+      const name = horseDisplayName(null, pet) || apiName;
       const label =
-        regt !== "—" && name !== "—"
+        regt !== "—" && name && name !== "—"
           ? `Horse ${regt} · ${name}`
           : regt !== "—"
             ? `Horse ${regt}`
-            : `Horse ${petName(pet)}`;
-      const latest = onDate[onDate.length - 1];
+            : `Horse ${apiName || petName(pet)}`;
       const time = latest ? sessionTimeIst(latest) : "—";
       const ward = findWardForPet(pet);
-      const latestSid = String(latest?.id ?? latest?.exam_session_id ?? "").trim();
+      const latestSid = latest ? String(latest.id ?? latest.exam_session_id ?? "").trim() : "";
       const tempC =
-        store.selectedDate === dateIso && pet._detailSessionId === latestSid
+        latest && store.selectedDate === dateIso && pet._detailSessionId === latestSid
           ? pet._latestTempC
           : null;
 
@@ -380,7 +440,7 @@
           vitalClass = "flagged";
         }
       } else if (ward) {
-        vitalDetail = `${conditionDisplayLabel(ward.disease)} — session on ${dateLabel}, no temperature`;
+        vitalDetail = `${conditionDisplayLabel(ward.disease)} — scanned ${dateLabel}`;
         vitalTag = "Logged";
         vitalClass = "";
       }
@@ -405,14 +465,20 @@
     const checkups = [];
     const n = vitals.length;
     const lastTime = n ? vitals[n - 1].time : "—";
+    const scannedNote =
+      dailyList.length > 0
+        ? `${n} scanned today (device uploads)`
+        : `${n} with sessions on ${dateLabel}`;
 
     return {
       title: "Today's Daily Report",
-      subtitle: `Device vitals for ${dateLabel} (IST)`,
+      subtitle: `${scannedNote} · ${dateLabel} IST`,
       dateLabel,
-      syncLabel: totalPets ? `${totalPets} horses registered` : "Loading…",
+      syncLabel: totalPets
+        ? `${scannedNote} · ${totalPets} registered`
+        : "Loading…",
       summaryNotes: {
-        vitals: "Horses with a device session on this date",
+        vitals: "Horses scanned today (same list as Excel daily summary)",
         treatments: "No treatment records for this date",
         checkups: "No separate checkup records for this date",
         completed: "Sessions completed on this date",
@@ -442,19 +508,21 @@
     };
   }
 
-  function renderWardDailyReport() {
+  async function renderWardDailyReport() {
     if (!global.VetAuth?.isLoggedIn?.()) return;
-    global.VetDashboardUi?.updateDailyReport?.(buildWardDailyReport());
+    const report = await buildWardDailyReportAsync();
+    global.VetDashboardUi?.updateDailyReport?.(report);
   }
 
   async function refreshTodayDashboard() {
     if (!global.VetAuth?.isLoggedIn?.()) return;
-    syncHealthDateToTodayIst();
+    const today = syncHealthDateToTodayIst();
+    store.dailyPetsCache = null;
+    store.dailyPetsCacheDate = null;
     if (store.pets.length) {
-      await applyDateFilter(store.selectedDate);
-    } else {
-      renderWardDailyReport();
+      await applyDateFilter(today);
     }
+    await renderWardDailyReport();
   }
 
   function applyHerdDiseaseFilter(diseaseKey, label) {
@@ -590,6 +658,8 @@
     loading: false,
     error: null,
     selectedDate: null,
+    dailyPetsCache: null,
+    dailyPetsCacheDate: null,
   };
 
   function $(id) {
@@ -1149,6 +1219,8 @@
     store.loading = false;
     store.error = null;
     store.selectedDate = null;
+    store.dailyPetsCache = null;
+    store.dailyPetsCacheDate = null;
     const body = document.querySelector("#herd-table tbody");
     if (body) {
       body.dataset.liveBound = "";
